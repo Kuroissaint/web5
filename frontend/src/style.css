@@ -1,0 +1,35 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+
+:root {
+  --primary: #f48b29; /* Orange */
+  --dark: #333;       /* Dark text */
+  --light: #f5f5f5;      /* White */
+  --darky: #9E7363;   /* Dark Brown/Cokelat Gelap */
+  --browny: #F6C590;  /* Orange Muda/Latar Belakang Utama */
+  --boxy: #F0E5D9;    /* Latar Belakang Box Info */
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-size: cover;
+  font-family: "Poppins", sans-serif;
+  
+  background-color: var(--browny); /* Latar belakang body disetel ke warna browny */
+  color: var(--dark);
+  overflow-x: hidden;
+}
+
+a {
+  text-decoration: none;
+  color: inherit;
+}
+
+img {
+  max-width: 100%;
+  display: block;
+}
