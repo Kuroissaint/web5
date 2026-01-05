@@ -160,6 +160,7 @@ const styles = StyleSheet.create({
     paddingVertical: 30,
     justifyContent: 'center',
   },
+
   // --- STYLE KARTU GAMBAR ---
   imageCardContainer: {
     width: '100%',
@@ -176,6 +177,7 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  
   // --- STYLE KARTU LOGIN ---
   cardContainer: {
     width: '100%',
