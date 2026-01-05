@@ -47,6 +47,7 @@ export const dataAPI = {
 export const kucingAPI = {
   getAll: () => api.get('/kucing'),
   getById: (id: string | number) => api.get(`/kucing/${id}`),
+  getJenis: () => api.get('/kucing/jenis'),
   search: (params: any) => api.get('/kucing/search', { params }),
   // Create menggunakan FormData untuk upload gambar
   create: (formData: FormData) => api.post('/kucing', formData, {

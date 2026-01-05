@@ -133,63 +133,55 @@ class KucingModel {
     // =====================================================================
   
     // ✅ METHOD SEARCH (Untuk halaman Pencarian/Hilang)
+    // backend/src/models/KucingModel.js
     async searchKucing(filters = {}) {
-        const { keyword, lokasi, ids } = filters;
+        const { keyword, provinsi_id, kota, tags } = filters;
         
         let query = `
-          SELECT 
+        SELECT 
             k.id, k.nama_kucing, k.status, k.deskripsi, k.created_at,
             jk.nama_jenis as jenis_kucing,
             GROUP_CONCAT(DISTINCT t.nama_tag) as tags,
             (SELECT url_gambar FROM gambar WHERE entitas_id = k.id AND jenis_entitas = 'kucing' LIMIT 1) as foto,
-            (SELECT GROUP_CONCAT(url_gambar) FROM gambar WHERE entitas_id = k.id AND jenis_entitas = 'kucing') as list_foto,
-            CONCAT(COALESCE(kec.nama_kecamatan, ''), ', ', COALESCE(kab.nama_kabupaten_kota, ''), ', ', COALESCE(p.nama_provinsi, ''), ' - ', COALESCE(lh.lokasi_terakhir, '')) as lokasi_display,
-            lh.nama_pelapor, lh.telepon as kontak_pelapor, lh.waktu_hilang,
-            p.nama_provinsi, kab.nama_kabupaten_kota
-          FROM kucing k
-          LEFT JOIN laporan_hilang lh ON k.id = lh.kucing_id
-          LEFT JOIN provinsi p ON lh.provinsi_id = p.id
-          LEFT JOIN kabupaten_kota kab ON lh.kabupaten_kota_id = kab.id
-          LEFT JOIN kecamatan kec ON lh.kecamatan_id = kec.id
-          LEFT JOIN jenis_kucing jk ON k.jenis_kucing_id = jk.id
-          LEFT JOIN tag_kucing tk ON k.id = tk.kucing_id  
-          LEFT JOIN tag t ON tk.tag_id = t.id
-          WHERE 1=1
+            CONCAT(COALESCE(kec.nama_kecamatan, ''), ', ', COALESCE(kab.nama_kabupaten_kota, ''), ', ', COALESCE(p.nama_provinsi, '')) as lokasi_display
+        FROM kucing k
+        LEFT JOIN laporan_hilang lh ON k.id = lh.kucing_id
+        LEFT JOIN provinsi p ON lh.provinsi_id = p.id
+        LEFT JOIN kabupaten_kota kab ON lh.kabupaten_kota_id = kab.id
+        LEFT JOIN kecamatan kec ON lh.kecamatan_id = kec.id
+        LEFT JOIN jenis_kucing jk ON k.jenis_kucing_id = jk.id
+        LEFT JOIN tag_kucing tk ON k.id = tk.kucing_id  
+        LEFT JOIN tag t ON tk.tag_id = t.id
+        WHERE k.status = 'hilang'
         `;
         
         const params = [];
-  
-        if (ids && Array.isArray(ids) && ids.length > 0) {
-            const placeholders = ids.map(() => '?').join(',');
-            query += ` AND k.id IN (${placeholders})`;
-            params.push(...ids);
-        } else {
-            if (!ids) {
-                query += " AND k.status = 'hilang'";
-            }
-        }
-  
+
         if (keyword) {
-            query += ' AND (k.nama_kucing LIKE ? OR k.deskripsi LIKE ? OR t.nama_tag LIKE ? OR lh.lokasi_terakhir LIKE ?)';
-            const searchTerm = `%${keyword}%`;
-            params.push(searchTerm, searchTerm, searchTerm, searchTerm);
+            query += ' AND (k.nama_kucing LIKE ? OR k.deskripsi LIKE ?)';
+            params.push(`%${keyword}%`, `%${keyword}%`);
         }
-  
-        if (lokasi) {
-            query += ' AND (p.nama_provinsi LIKE ? OR kab.nama_kabupaten_kota LIKE ?)';
-            const locTerm = `%${lokasi}%`;
-            params.push(locTerm, locTerm);
+        if (provinsi_id) {
+            query += ' AND lh.provinsi_id = ?';
+            params.push(provinsi_id);
         }
-  
+        if (kota) {
+            query += ' AND kab.nama_kabupaten_kota LIKE ?';
+            params.push(`%${kota}%`);
+        }
+        if (tags && tags.length > 0) {
+            const tagArray = Array.isArray(tags) ? tags : [tags];
+            query += ` AND k.id IN (
+                SELECT tk2.kucing_id FROM tag_kucing tk2 
+                JOIN tag t2 ON tk2.tag_id = t2.id 
+                WHERE t2.nama_tag IN (${tagArray.map(() => '?').join(',')})
+            )`;
+            params.push(...tagArray);
+        }
+
         query += ' GROUP BY k.id ORDER BY k.created_at DESC';
-  
-        try {
-            const [rows] = await this.db.execute(query, params);
-            return rows;
-        } catch (error) {
-            console.error("SQL Error di searchKucing:", error);
-            throw error;
-        }
+        const [rows] = await this.db.execute(query, params);
+        return rows;
     }
   
     async getAll() {
@@ -201,7 +193,14 @@ class KucingModel {
         const [rows] = await this.db.execute('SELECT * FROM tag ORDER BY kategori DESC, nama_tag ASC');
         return rows;
     }
-  
+    
+    // backend/src/models/KucingModel.js
+    async getAllJenis() {
+        const [rows] = await this.db.execute('SELECT id, nama_jenis FROM jenis_kucing ORDER BY nama_jenis ASC');
+        return rows;
+    }
+
+
     // ✅ Get Detail (Versi Search/Hilang - Beda dengan findById di atas)
     async getById(id) {
         const [rows] = await this.db.execute(`

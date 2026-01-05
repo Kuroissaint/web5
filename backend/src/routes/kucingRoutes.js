@@ -23,6 +23,10 @@ async function kucingRoutes(fastify, options) {
     kucingController.getTags(request, reply)
   );
 
+  fastify.get('/kucing/jenis', (request, reply) => 
+    kucingController.getJenisKucing(request, reply)
+  );
+  
   fastify.get('/kucing/user/:id', (request, reply) => 
     kucingController.getKucingByUserId(request, reply)
   );

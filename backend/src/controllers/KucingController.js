@@ -49,11 +49,13 @@ class KucingController {
 
   async searchKucing(request, reply) {
     try {
-      const { q, jenis, lokasi, status, ids } = request.query; // Tambah ids
-      const kucing = await this.kucingModel.searchKucing({ keyword: q, jenis, lokasi, status, ids });
+      const { q, provinsi_id, kota, tags } = request.query;
+      const kucing = await this.kucingModel.searchKucing({ 
+        keyword: q, provinsi_id, kota, tags 
+      });
       return reply.send({ success: true, data: kucing });
     } catch (error) {
-      return reply.status(500).send({ success: false, error: 'Gagal mencari: ' + error.message });
+      return reply.status(500).send({ success: false, error: error.message });
     }
   }
 
@@ -61,6 +63,15 @@ class KucingController {
     try {
       const tags = await this.kucingModel.getAllTags();
       return reply.send({ success: true, data: tags });
+    } catch (error) {
+      return reply.status(500).send({ success: false, error: error.message });
+    }
+  }
+
+  async getJenisKucing(request, reply) {
+    try {
+      const jenis = await this.kucingModel.getAllJenis();
+      return reply.send({ success: true, data: jenis });
     } catch (error) {
       return reply.status(500).send({ success: false, error: error.message });
     }
