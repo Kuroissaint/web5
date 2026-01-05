@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 1. ⚠️ PENTING: Ganti '192.168.x.x' dengan IP lokal laptop Anda (cek di CMD via 'ipconfig')
 // Jangan gunakan localhost atau 127.0.0.1 karena tidak akan terdeteksi oleh HP/Emulator
-const IP_LAPTOP = '192.168.0.109'; 
+const IP_LAPTOP = '192.168.1.6'; 
 const API_BASE_URL = `http://${IP_LAPTOP}:3000/api`;
 
 const api = axios.create({

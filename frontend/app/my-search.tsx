@@ -7,7 +7,8 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Animated, { FadeInLeft } from 'react-native-reanimated';
-import api from '../services/api'; // Sesuaikan path
+import api from '../services/api';
+import { BASE_URL } from '../services/api';
 
 const MySearchScreen = () => {
   const router = useRouter();
@@ -47,36 +48,45 @@ const MySearchScreen = () => {
     }
   };
 
-  const renderItem = ({ item, index }: any) => {
-    const statusColor = getStatusStyle(item.status || 'Proses');
-    
-    return (
-      <Animated.View 
-        entering={FadeInLeft.delay(index * 100)} 
-        style={styles.card}
-      >
-        <View style={styles.cardHeader}>
-          <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
-            <Text style={[styles.statusText, { color: statusColor.text }]}>
-              ● {item.status || 'Diproses'}
-            </Text>
-          </View>
-          <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
-        </View>
+    const renderItem = ({ item, index }: any) => {
+        const statusColor = getStatusStyle(item.status || 'Proses');
+        
+        // Perbaiki URL Gambar: Tambahkan IP Laptop di depan path /uploads/...
+        const imageUrl = item.foto ? `http://192.168.1.6:3000${item.foto}` : null;
 
-        <View style={styles.cardBody}>
-          <Text style={styles.reportTitle}>{item.kucing?.nama || 'Kucing Tanpa Nama'}</Text>
-          <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={14} color="#666" />
-            <Text style={styles.infoText}>{item.kucing?.lokasi || 'Lokasi tidak diketahui'}</Text>
-          </View>
-          <Text style={styles.description} numberOfLines={2}>
-            {item.kucing?.deskripsi || 'Tidak ada deskripsi tambahan.'}
-          </Text>
-        </View>
-      </Animated.View>
-    );
-  };
+        return (
+        <Animated.View entering={FadeInLeft.delay(index * 100)} style={styles.card}>
+            <View style={styles.cardHeader}>
+            <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
+                <Text style={[styles.statusText, { color: statusColor.text }]}>
+                ● {item.status || 'Diproses'}
+                </Text>
+            </View>
+            <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
+            </View>
+
+            <View style={styles.cardBody}>
+            {/* --- TAMBAHKAN FOTO DI SINI --- */}
+            {imageUrl && (
+                <Image source={{ uri: imageUrl }} style={styles.catImage} />
+            )}
+
+            {/* Gunakan item.nama_kucing langsung */}
+            <Text style={styles.reportTitle}>{item.nama_kucing || 'Kucing Tanpa Nama'}</Text>
+            
+            <View style={styles.infoRow}>
+                <Ionicons name="location-outline" size={14} color="#666" />
+                {/* Gunakan lokasi_display dari backend */}
+                <Text style={styles.infoText}>{item.lokasi_display || 'Lokasi tidak diketahui'}</Text>
+            </View>
+            
+            <Text style={styles.description} numberOfLines={2}>
+                {item.deskripsi || 'Tidak ada deskripsi tambahan.'}
+            </Text>
+            </View>
+        </Animated.View>
+        );
+    };
 
   return (
     <View style={styles.container}>
@@ -143,6 +153,13 @@ const styles = StyleSheet.create({
     shadowColor: '#000',
     shadowOpacity: 0.05,
     shadowRadius: 10
+  },
+  catImage: {
+    width: '100%',
+    height: 150,
+    borderRadius: 12,
+    marginBottom: 10,
+    backgroundColor: '#eee' // Placeholder saat loading
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   cardBody: { marginBottom: 15 },

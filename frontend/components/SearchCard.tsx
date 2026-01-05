@@ -3,10 +3,10 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, Dimensions } from 'rea
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../constants/Colors';
 import { Layout } from '../constants/Layout';
-import { IMAGE_URL } from '../services/api';
+import { BASE_URL } from '../services/api'; // Gunakan BASE_URL saja
 
 const { width } = Dimensions.get('window');
-const cardWidth = (width - 50) / 2; // Hitung lebar kartu biar pas 2 kolom
+const cardWidth = (width - 45) / 2; 
 
 interface SearchCardProps {
   item: any;
@@ -14,32 +14,23 @@ interface SearchCardProps {
 }
 
 const SearchCard = ({ item, onPress }: SearchCardProps) => {
-  const getTags = () => {
-    if (!item.tags) return [];
-    if (Array.isArray(item.tags)) return item.tags;
-    if (typeof item.tags === 'string') {
-      if (item.tags.startsWith('[')) {
-        try { return JSON.parse(item.tags); } catch (e) { return []; }
-      }
-      return item.tags.split(',').map(t => t.trim());
-    }
-    return [];
-  };
+  // Logic untuk parsing tags (tetap sama)
+  const tags = Array.isArray(item.tags) ? item.tags : (item.tags?.split(',') || []);
 
-  const tags = getTags();
+  // PERBAIKAN GAMBAR: Backend biasanya mengirim '/uploads/namafile.jpg'
+  // Jadi kita gabungkan langsung dengan BASE_URL (http://ip:3000)
+  const imageUrl = item.foto ? `${BASE_URL}${item.foto}` : null;
 
   return (
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.9}>
-      {/* Gambar Kucing Gede di Atas */}
       <View style={styles.imageWrapper}>
         <Image 
-          source={item.foto ? { uri: `${IMAGE_URL}${item.foto}` } : require('../assets/logo.png')} 
+          source={imageUrl ? { uri: imageUrl } : require('../assets/logo.png')} 
           style={styles.image}
           resizeMode="cover"
         />
-        {/* Badge Ras Melayang di Gambar */}
         <View style={styles.rasBadge}>
-          <Text style={styles.rasText}>{item.ras || 'Kampung'}</Text>
+          <Text style={styles.rasText}>{item.jenis_kucing || 'Kampung'}</Text>
         </View>
       </View>
 
@@ -47,19 +38,27 @@ const SearchCard = ({ item, onPress }: SearchCardProps) => {
         <Text style={styles.name} numberOfLines={1}>{item.nama_kucing || "Anabul"}</Text>
         
         <View style={styles.locationRow}>
-          <Ionicons name="location" size={10} color={Colors.primary} />
+          <Ionicons name="location" size={12} color={Colors.primary} />
           <Text style={styles.locationText} numberOfLines={1}>
-            {item.lokasi_detail || 'Lokasi...'}
+            {/* PERBAIKAN: Gunakan lokasi_display (sesuai Backend) */}
+            {item.lokasi_display || 'Lokasi tidak diketahui'}
           </Text>
         </View>
 
-        {/* Tags dibatasi cuma 2 biar gak berantakan */}
-        <View style={styles.tagsRow}>
-          {tags.slice(0, 2).map((tag: string, index: number) => (
-            <View key={index} style={styles.tagChip}>
-              <Text style={styles.tagText}>{tag}</Text>
-            </View>
-          ))}
+        <View style={styles.footerRow}>
+          <View style={styles.tagsRow}>
+            {tags.slice(0, 1).map((tag: string, index: number) => (
+              <View key={index} style={styles.tagChip}>
+                <Text style={styles.tagText}>{tag.trim()}</Text>
+              </View>
+            ))}
+          </View>
+          
+          {/* TOMBOL DETAIL: Biar user tahu bisa diklik */}
+          <View style={styles.btnDetail}>
+             <Text style={styles.btnDetailText}>Detail</Text>
+             <Ionicons name="arrow-forward" size={10} color={Colors.white} />
+          </View>
         </View>
       </View>
     </TouchableOpacity>
@@ -70,56 +69,46 @@ const styles = StyleSheet.create({
   card: {
     width: cardWidth,
     backgroundColor: Colors.white,
-    borderRadius: 20,
+    borderRadius: 15,
     marginBottom: 15,
-    overflow: 'hidden', // Biar gambar ikut melengkung di atas
+    overflow: 'hidden',
     ...Layout.shadow,
   },
-  imageWrapper: {
-    width: '100%',
-    height: 140, // Foto jadi jauh lebih gede sekarang!
-    backgroundColor: '#F0F0F0',
-  },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
+  imageWrapper: { width: '100%', height: 120, backgroundColor: '#f5f5f5' },
+  image: { width: '100%', height: '100%' },
   rasBadge: {
     position: 'absolute',
-    bottom: 8,
-    left: 8,
-    backgroundColor: 'rgba(158, 115, 99, 0.9)', // Warna primary transparan
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 5,
   },
-  rasText: { fontSize: 9, color: Colors.white, fontWeight: '700' },
-  content: {
-    padding: 12,
+  rasText: { fontSize: 8, color: '#fff', fontWeight: 'bold' },
+  content: { padding: 10 },
+  name: { fontSize: 14, fontWeight: 'bold', color: '#333', marginBottom: 2 },
+  locationRow: { flexDirection: 'row', alignItems: 'center', gap: 2, marginBottom: 8 },
+  locationText: { fontSize: 10, color: '#777', flex: 1 },
+  footerRow: { 
+    flexDirection: 'row', 
+    justifyContent: 'space-between', 
+    alignItems: 'center',
+    marginTop: 5 
   },
-  name: { 
-    fontSize: 15, 
-    fontWeight: '800', 
-    color: Colors.textPrimary,
-    marginBottom: 4 
-  },
-  locationRow: { 
+  tagsRow: { flexDirection: 'row', gap: 4 },
+  tagChip: { backgroundColor: '#f0f0f0', paddingHorizontal: 5, paddingVertical: 2, borderRadius: 4 },
+  tagText: { fontSize: 8, color: '#666' },
+  btnDetail: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    gap: 3, 
-    marginBottom: 8 
+    backgroundColor: Colors.primary, 
+    paddingHorizontal: 8, 
+    paddingVertical: 4, 
+    borderRadius: 6,
+    gap: 2
   },
-  locationText: { fontSize: 10, color: Colors.textMuted },
-  tagsRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
-  tagChip: { 
-    backgroundColor: Colors.inputBg, 
-    paddingHorizontal: 6, 
-    paddingVertical: 2, 
-    borderRadius: 4,
-    borderWidth: 0.5,
-    borderColor: Colors.border
-  },
-  tagText: { fontSize: 8, color: Colors.textSecondary, fontWeight: '600' },
+  btnDetailText: { color: '#fff', fontSize: 9, fontWeight: 'bold' }
 });
 
 export default SearchCard;

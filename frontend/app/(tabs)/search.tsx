@@ -13,6 +13,7 @@ import RegionSelect from '../../components/RegionSelect';
 import api from '../../services/api';
 import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
+import { useEffect } from 'react';
 
 const SearchScreen = () => {
   const router = useRouter();
@@ -23,7 +24,9 @@ const SearchScreen = () => {
   
   // State untuk buka/tutup filter wilayah
   const [showFilter, setShowFilter] = useState(false);
-
+  useEffect(() => {
+    performSearch();
+  }, []);
   const performSearch = async () => {
     setLoading(true);
     try {
@@ -34,8 +37,12 @@ const SearchScreen = () => {
           kota: filter.kotaName 
         }
       });
-      if (response.data?.data) setResults(response.data.data);
+      // Pastikan response.data.data ada
+      if (response.data?.data) {
+        setResults(response.data.data);
+      }
     } catch (error) {
+      console.error("Search Error:", error);
       Alert.alert("Error", "Gagal mengambil data.");
     } finally {
       setLoading(false);
