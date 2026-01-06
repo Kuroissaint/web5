@@ -53,15 +53,6 @@ fastify.register(require('@fastify/jwt'), {
   secret: process.env.JWT_SECRET || 'rahasia_super_aman_meowment' 
 });
 
-//Decorator untuk proteksi route
-fastify.decorate("authenticate", async function (request, reply) {
-  try {
-    await request.jwtVerify();
-  } catch (err) {
-    reply.status(401).send({ success: false, message: "Sesi habis atau token salah. Silakan login kembali." });
-  }
-});
-
 // --- 3. PENDATAAN ROUTES & HEALTH CHECK ---
 
 fastify.get('/health', async (request, reply) => {
@@ -73,8 +64,9 @@ fastify.register(require('./src/routes/wilayahRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/donasiRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/authRoutes'), { prefix: '/api/auth' }); 
 fastify.register(require('./src/routes/rescueRoutes'), { prefix: '/api/rescue' }); 
-fastify.register(require('./src/routes/pengajuanAdopsiRoutes'), { prefix: '/api' }); 
-fastify.register(require('./src/routes/aplikasiAdopsiRoutes'), { prefix: '/api' });
+fastify.register(require('./src/routes/pengajuanAdopsiRoutes'), { prefix: '/api' });
+fastify.register(require('./src/routes/shelterRoutes'), { prefix: '/api' }); 
+
 
 // --- 4. ERROR HANDLER ---
 
@@ -95,23 +87,14 @@ fastify.setErrorHandler((error, request, reply) => {
 
 // --- 5. FUNGSI START UTAMA (MENGGUNAKAN fastify.ready) ---
 
+// server.js
 const start = async () => {
   try {
-    const PORT = process.env.PORT || 3000;
-    
-    // ✅ PERBAIKAN: Gunakan fastify.ready() untuk memastikan semua register selesai sebelum listen
-    await fastify.ready();
-    
     await fastify.listen({ 
-      port: PORT,
-      host: '0.0.0.0' 
+      port: 3000, 
+      host: '0.0.0.0' // WAJIB ADA agar bisa diakses dari luar laptop
     });
-    
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
-    
   } catch (err) {
-    // Tangkap error jika listen() gagal (misal: EADDRINUSE) atau error di ready()
-    console.error('Error starting server (Fatal):', err);
     process.exit(1);
   }
 };
