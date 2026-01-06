@@ -65,9 +65,10 @@ const KucingSayaTab = () => {
       const userStr = await AsyncStorage.getItem('user');
       if (!userStr) return;
       const user = JSON.parse(userStr);
-      // Panggil API kucing berdasarkan user_id
+      
       const res = await kucingAPI.getAll(); 
-      const myCats = res.data.filter((k: any) => k.pengguna_id === user.id);
+      const actualData = res.data.data || []; 
+      const myCats = actualData.filter((k: any) => k.pengguna_id === user.id);
       setData(myCats);
     } catch (err) {
       console.error(err);
@@ -92,11 +93,12 @@ const KucingSayaTab = () => {
 export default function AktivitasSaya() {
   return (
     <TopTab.Navigator
-      screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarIndicatorStyle: { backgroundColor: Colors.primary },
-        tabBarLabelStyle: { fontWeight: 'bold' },
-      }}
+        id="AktivitasTabs" // Tambahkan ID bebas apa saja agar tidak error
+        screenOptions={{
+            tabBarActiveTintColor: Colors.primary,
+            tabBarIndicatorStyle: { backgroundColor: Colors.primary },
+            tabBarLabelStyle: { fontWeight: 'bold' },
+        }}
     >
       <TopTab.Screen name="Adopsi Saya" component={AdopsiSayaTab} />
       <TopTab.Screen name="Kucing Saya" component={KucingSayaTab} />

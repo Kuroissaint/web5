@@ -1,11 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, Image, 
-  TouchableOpacity, ActivityIndicator, Linking, Alert, Dimensions 
+  TouchableOpacity, ActivityIndicator, Alert, Dimensions 
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { kucingAPI, BASE_URL } from '../../services/api'; //
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import api, { kucingAPI, BASE_URL } from '../../services/api';
 import { Colors } from '../../constants/Colors';
 
 const { width } = Dimensions.get('window');
@@ -17,52 +18,62 @@ const DetailKucingScreen = () => {
   const [cat, setCat] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activePhoto, setActivePhoto] = useState<string | null>(null);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
   useEffect(() => {
-    fetchDetail();
+    loadInitialData();
   }, [id]);
 
-  const fetchDetail = async () => {
+  const loadInitialData = async () => {
     try {
       setLoading(true);
-      const response = await kucingAPI.getById(id as string); //
+      // 1. Ambil data User dari Storage
+      const userStr = await AsyncStorage.getItem('user');
+      if (userStr) setCurrentUser(JSON.parse(userStr));
+
+      // 2. Ambil detail kucing
+      const response = await kucingAPI.getById(id as string);
       if (response.data?.success) {
         const data = response.data.data;
         setCat(data);
-        // Set foto utama dari list_foto_url atau foto default
         const photos = data.list_foto_url ? data.list_foto_url.split(',') : [];
         setActivePhoto(photos.length > 0 ? `${BASE_URL}${photos[0]}` : null);
       }
     } catch (error) {
-      Alert.alert("Error", "Gagal memuat detail kucing.");
+      Alert.alert("Error", "Gagal memuat detail anabul.");
     } finally {
       setLoading(false);
     }
   };
 
-  const handleWhatsApp = () => {
-    if (!cat?.kontak_pelapor) return;
-    // Format nomor WA (hilangkan karakter non-digit)
-    const phone = cat.kontak_pelapor.replace(/\D/g, '');
-    const message = `Halo, saya melihat laporan kucing "${cat.nama_kucing}" di Meowment. Apakah masih ada?`;
-    Linking.openURL(`whatsapp://send?phone=${phone}&text=${encodeURIComponent(message)}`);
+  // Fungsi untuk update status (Hanya bisa dilakukan pemilik atau tombol khusus)
+  const handleUpdateStatus = async (newStatus: string) => {
+    try {
+      const response = await api.put(`/kucing/${id}/status`, { status: newStatus });
+      if (response.data.success) {
+        Alert.alert("Berhasil", `Status anabul sekarang: ${newStatus}`);
+        loadInitialData(); // Refresh data
+      }
+    } catch (error) {
+      Alert.alert("Error", "Gagal memperbarui status.");
+    }
   };
 
   if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={{ marginTop: 10 }}>Memuat data anabul...</Text>
       </View>
     );
   }
 
+  // IDENTIFIKASI POV: Apakah ini laporan milik saya?
+  const isOwner = currentUser?.id === cat?.pengguna_id;
   const photos = cat?.list_foto_url ? cat.list_foto_url.split(',') : [];
 
   return (
     <View style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Main Image & Back Button */}
         <View style={styles.imageContainer}>
           <Image 
             source={activePhoto ? { uri: activePhoto } : require('../../assets/logo.png')} 
@@ -73,7 +84,6 @@ const DetailKucingScreen = () => {
           </TouchableOpacity>
         </View>
 
-        {/* Thumbnail List */}
         {photos.length > 1 && (
           <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.thumbList}>
             {photos.map((p: string, i: number) => (
@@ -88,9 +98,33 @@ const DetailKucingScreen = () => {
         )}
 
         <View style={styles.infoContent}>
-          <Text style={styles.catName}>{cat?.nama_kucing || "Anabul"}</Text>
-          
-          {/* Tags */}
+          <View style={styles.headerRow}>
+            <Text style={styles.catName}>{cat?.nama_kucing}</Text>
+            {/* Status Badge */}
+            <View style={[styles.statusBadge, { backgroundColor: cat?.status === 'hilang' ? '#FFE0E0' : '#E0FFE0' }]}>
+              <Text style={{ color: cat?.status === 'hilang' ? '#D32F2F' : '#388E3C', fontWeight: 'bold', fontSize: 10 }}>
+                {cat?.status?.toUpperCase()}
+              </Text>
+            </View>
+          </View>
+
+          {/* STATUS STEPPER (Terinspirasi dari MySearchPage) */}
+          <View style={styles.stepperContainer}>
+            <View style={styles.stepItem}>
+              <View style={[styles.stepCircle, styles.stepActive]}>
+                <Ionicons name="search" size={14} color="white" />
+              </View>
+              <Text style={styles.stepLabel}>Dilaporkan Hilang</Text>
+            </View>
+            <View style={[styles.stepLine, cat?.status === 'ditemukan' && styles.lineActive]} />
+            <View style={styles.stepItem}>
+              <View style={[styles.stepCircle, cat?.status === 'ditemukan' && styles.stepActive]}>
+                <Ionicons name="checkmark-circle" size={14} color={cat?.status === 'ditemukan' ? "white" : "#CCC"} />
+              </View>
+              <Text style={styles.stepLabel}>Sudah Ditemukan</Text>
+            </View>
+          </View>
+
           <View style={styles.tagRow}>
             {cat?.tags?.split(',').map((tag: string, i: number) => (
               <View key={i} style={styles.tagChip}>
@@ -99,37 +133,71 @@ const DetailKucingScreen = () => {
             ))}
           </View>
 
-          {/* Info Grid (Mirip Web) */}
           <View style={styles.grid}>
-            <InfoItem label="Status" value={cat?.status} color={cat?.status === 'hilang' ? '#d93025' : '#1e8e3e'} />
-            <InfoItem label="Jenis" value={cat?.jenis_kucing || 'Kampung'} />
-            <InfoItem label="Waktu" value={cat?.waktu_hilang ? new Date(cat.waktu_hilang).toLocaleDateString() : '-'} />
-            <InfoItem label="Lokasi" value={cat?.lokasi_display} isFullWidth />
+            <InfoItem label="Jenis/Ras" value={cat?.jenis_kucing || 'Kampung'} />
+            <InfoItem label="Terakhir Terlihat" value={cat?.waktu_hilang ? new Date(cat.waktu_hilang).toLocaleDateString('id-ID') : '-'} />
+            <InfoItem label="Lokasi Detail" value={cat?.lokasi_display} isFullWidth />
           </View>
 
-          <Text style={styles.sectionTitle}>Deskripsi</Text>
+          <Text style={styles.sectionTitle}>Ciri-ciri Khusus</Text>
           <Text style={styles.description}>{cat?.deskripsi || "Tidak ada deskripsi tambahan."}</Text>
           
-          <View style={{ height: 100 }} /> 
+          <View style={{ height: 120 }} /> 
         </View>
       </ScrollView>
 
-      {/* Floating Action Button */}
+      {/* BOTTOM ACTIONS (Dua POV) */}
       <View style={styles.bottomActions}>
-        <TouchableOpacity style={styles.btnWA} onPress={handleWhatsApp}>
-          <Ionicons name="logo-whatsapp" size={20} color="white" />
-          <Text style={styles.btnWAText}>Hubungi Pelapor</Text>
-        </TouchableOpacity>
+        {isOwner ? (
+          // POV PEMILIK: Kelola Laporan
+          <View style={styles.row}>
+            <TouchableOpacity 
+              style={[styles.btnAction, { backgroundColor: '#F5F5F5', flex: 1 }]} 
+              onPress={() => router.push(`/searchReport?editId=${id}`)}
+            >
+              <Text style={{ color: '#666', fontWeight: 'bold' }}>Edit Laporan</Text>
+            </TouchableOpacity>
+            {cat?.status === 'hilang' && (
+              <TouchableOpacity 
+                style={[styles.btnAction, { backgroundColor: Colors.primary, flex: 2 }]} 
+                onPress={() => handleUpdateStatus('ditemukan')}
+              >
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Tandai Ditemukan</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+        ) : (
+          // POV PENGGUNA LAIN: Chat & Saya Menemukan
+          <View style={styles.row}>
+            <TouchableOpacity 
+              style={styles.btnChat} 
+              onPress={() => router.push({
+                pathname: `/chat/${cat.pengguna_id}`,
+                params: { name: cat.nama_pelapor }
+              })}
+            >
+              <Ionicons name="chatbubbles-outline" size={20} color={Colors.primary} />
+              <Text style={styles.btnChatText}>Chat Pelapor</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.btnFound} 
+              onPress={() => handleUpdateStatus('ditemukan')}
+            >
+              <Text style={styles.btnFoundText}>Saya Menemukan!</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
     </View>
   );
 };
 
-// Helper Component untuk Grid
-const InfoItem = ({ label, value, color = '#333', isFullWidth = false }: any) => (
+// ... InfoItem Component & Styles ...
+const InfoItem = ({ label, value, isFullWidth = false }: any) => (
   <View style={[styles.infoItem, isFullWidth && { width: '100%' }]}>
     <Text style={styles.infoLabel}>{label}</Text>
-    <Text style={[styles.infoValue, { color }]}>{value || '-'}</Text>
+    <Text style={styles.infoValue}>{value || '-'}</Text>
   </View>
 );
 
@@ -143,26 +211,36 @@ const styles = StyleSheet.create({
   thumb: { width: 60, height: 60, borderRadius: 10, marginRight: 10, borderWidth: 2, borderColor: '#eee' },
   activeThumb: { borderColor: Colors.primary },
   infoContent: { padding: 20 },
-  catName: { fontSize: 28, fontWeight: '900', color: '#333', marginBottom: 10 },
+  headerRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15 },
+  catName: { fontSize: 26, fontWeight: '900', color: '#333' },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 },
+  
+  // Stepper Styles
+  stepperContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F8F9FA', padding: 15, borderRadius: 15, marginBottom: 20 },
+  stepItem: { alignItems: 'center', flex: 1 },
+  stepCircle: { width: 28, height: 28, borderRadius: 14, backgroundColor: '#EEE', justifyContent: 'center', alignItems: 'center', marginBottom: 5 },
+  stepActive: { backgroundColor: Colors.primary },
+  stepLabel: { fontSize: 10, color: '#666', fontWeight: 'bold' },
+  stepLine: { width: 40, height: 3, backgroundColor: '#EEE', marginTop: -15 },
+  lineActive: { backgroundColor: Colors.primary },
+
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6, marginBottom: 20 },
   tagChip: { backgroundColor: '#f0e6e0', paddingHorizontal: 12, paddingVertical: 4, borderRadius: 15 },
   tagText: { color: '#8d6e63', fontSize: 12, fontWeight: '700' },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 15 },
   infoItem: { width: (width - 55) / 2 },
-  infoLabel: { fontSize: 12, color: '#999', marginBottom: 2 },
-  infoValue: { fontSize: 15, fontWeight: '700' },
-  sectionTitle: { fontSize: 18, fontWeight: '800', marginTop: 25, marginBottom: 10 },
-  description: { fontSize: 15, color: '#666', lineHeight: 22 },
-  bottomActions: { 
-    position: 'absolute', bottom: 0, width: '100%', 
-    padding: 20, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#eee' 
-  },
-  btnWA: { 
-    backgroundColor: '#25D366', flexDirection: 'row', 
-    justifyContent: 'center', alignItems: 'center', 
-    padding: 15, borderRadius: 12, gap: 10 
-  },
-  btnWAText: { color: 'white', fontWeight: 'bold', fontSize: 16 }
+  infoLabel: { fontSize: 11, color: '#999', marginBottom: 2 },
+  infoValue: { fontSize: 14, fontWeight: '700', color: '#444' },
+  sectionTitle: { fontSize: 16, fontWeight: '800', marginTop: 25, marginBottom: 10 },
+  description: { fontSize: 14, color: '#666', lineHeight: 22 },
+  
+  bottomActions: { position: 'absolute', bottom: 0, width: '100%', padding: 15, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#eee', paddingBottom: 30 },
+  row: { flexDirection: 'row', gap: 12 },
+  btnChat: { flex: 1, flexDirection: 'row', height: 50, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 12, justifyContent: 'center', alignItems: 'center', gap: 8 },
+  btnChatText: { color: Colors.primary, fontWeight: 'bold' },
+  btnFound: { flex: 1.5, height: 50, backgroundColor: Colors.primary, borderRadius: 12, justifyContent: 'center', alignItems: 'center' },
+  btnFoundText: { color: 'white', fontWeight: 'bold' },
+  btnAction: { height: 50, borderRadius: 12, justifyContent: 'center', alignItems: 'center' }
 });
 
 export default DetailKucingScreen;

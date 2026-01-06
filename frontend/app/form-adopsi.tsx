@@ -141,7 +141,7 @@ const FormAdopsi = () => {
       
       if (res.data.success) {
         Alert.alert("Berhasil! 🎉", "Aplikasi adopsi Anda telah terkirim.");
-        navigation.navigate('AdoptKucing');
+        router.replace('/(tabs)/adopt'); // Gunakan replace agar tidak bisa back ke form lagi
       }
 
     } catch (err: any) {

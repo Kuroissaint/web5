@@ -10,6 +10,9 @@ async function kucingRoutes(fastify, options) {
   fastify.get('/kucing/:id', (request, reply) => 
     kucingController.getKucingById(request, reply)
   );
+  fastify.put('/kucing/:id/status', (request, reply) => 
+    kucingController.updateStatusLaporan(request, reply)
+);
   
   fastify.post('/kucing', { onRequest: [fastify.authenticate] }, (request, reply) => 
     kucingController.createKucing(request, reply)
@@ -26,7 +29,7 @@ async function kucingRoutes(fastify, options) {
   fastify.get('/kucing/jenis', (request, reply) => 
     kucingController.getJenisKucing(request, reply)
   );
-  
+
   fastify.get('/kucing/user/:id', (request, reply) => 
     kucingController.getKucingByUserId(request, reply)
   );

@@ -51,7 +51,7 @@ class KucingController {
     try {
       const { q, provinsi_id, kota, tags } = request.query;
       const kucing = await this.kucingModel.searchKucing({ 
-        keyword: q, provinsi_id, kota, tags 
+        keyword: q, provinsi_id, kota, tags, status
       });
       return reply.send({ success: true, data: kucing });
     } catch (error) {
@@ -118,6 +118,7 @@ async createKucing(request, reply) {
       }
     }
 
+    
     // 3. LOGIKA FORM (Hilang vs Ditemukan)
     // Kita tetap pertahankan deteksi otomatis, tapi sekarang data terikat ke pengguna_id
     const isRescue = !getValue(parts.nama_kucing) && getValue(parts.nama);
@@ -176,6 +177,19 @@ async createKucing(request, reply) {
     });
   }
 }
+
+// backend/src/controllers/KucingController.js
+async updateStatusLaporan(request, reply) {
+  try {
+      const { id } = request.params;
+      const { status } = request.body;
+      await this.kucingModel.updateLaporanStatus(id, status);
+      return reply.send({ success: true, message: 'Status berhasil diperbarui' });
+  } catch (error) {
+      return reply.status(500).send({ success: false, error: error.message });
+  }
+}
+
 }
 
 module.exports = KucingController;

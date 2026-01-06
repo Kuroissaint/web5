@@ -48,45 +48,53 @@ const MySearchScreen = () => {
     }
   };
 
-    const renderItem = ({ item, index }: any) => {
-        const statusColor = getStatusStyle(item.status || 'Proses');
-        
-        // Perbaiki URL Gambar: Tambahkan IP Laptop di depan path /uploads/...
-        const imageUrl = item.foto ? `http://192.168.1.6:3000${item.foto}` : null;
+  const renderItem = ({ item, index }: any) => {
+      const statusColor = getStatusStyle(item.status || 'hilang');
+      
+      // Perbaiki URL Gambar: Gunakan BASE_URL dari services/api agar konsisten
+      const imageUrl = item.foto ? `${BASE_URL}${item.foto}` : null;
 
-        return (
-        <Animated.View entering={FadeInLeft.delay(index * 100)} style={styles.card}>
-            <View style={styles.cardHeader}>
-            <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
-                <Text style={[styles.statusText, { color: statusColor.text }]}>
-                ● {item.status || 'Diproses'}
-                </Text>
-            </View>
-            <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString()}</Text>
-            </View>
+      return (
+          <Animated.View entering={FadeInLeft.delay(index * 100)} style={styles.card}>
+              <View style={styles.cardHeader}>
+                  <View style={[styles.statusBadge, { backgroundColor: statusColor.bg }]}>
+                      <Text style={[styles.statusText, { color: statusColor.text }]}>
+                          ● {item.status === 'hilang' ? 'Mencari' : 'Ditemukan'}
+                      </Text>
+                  </View>
+                  <Text style={styles.dateText}>{new Date(item.created_at).toLocaleDateString('id-ID')}</Text>
+              </View>
 
-            <View style={styles.cardBody}>
-            {/* --- TAMBAHKAN FOTO DI SINI --- */}
-            {imageUrl && (
-                <Image source={{ uri: imageUrl }} style={styles.catImage} />
-            )}
+              <View style={styles.cardBody}>
+                  {imageUrl && (
+                      <Image source={{ uri: imageUrl }} style={styles.catImage} />
+                  )}
 
-            {/* Gunakan item.nama_kucing langsung */}
-            <Text style={styles.reportTitle}>{item.nama_kucing || 'Kucing Tanpa Nama'}</Text>
-            
-            <View style={styles.infoRow}>
-                <Ionicons name="location-outline" size={14} color="#666" />
-                {/* Gunakan lokasi_display dari backend */}
-                <Text style={styles.infoText}>{item.lokasi_display || 'Lokasi tidak diketahui'}</Text>
-            </View>
-            
-            <Text style={styles.description} numberOfLines={2}>
-                {item.deskripsi || 'Tidak ada deskripsi tambahan.'}
-            </Text>
-            </View>
-        </Animated.View>
-        );
-    };
+                  <Text style={styles.reportTitle}>{item.nama_kucing || 'Kucing Tanpa Nama'}</Text>
+                  
+                  <View style={styles.infoRow}>
+                      <Ionicons name="location-outline" size={14} color="#666" />
+                      <Text style={styles.infoText}>{item.lokasi_display || 'Lokasi tidak diketahui'}</Text>
+                  </View>
+                  
+                  <Text style={styles.description} numberOfLines={2}>
+                      {item.deskripsi || 'Tidak ada deskripsi tambahan.'}
+                  </Text>
+              </View>
+
+              {/* --- TAMBAHKAN TOMBOL INI DI SINI --- */}
+              <View style={styles.cardFooter}>
+                  <TouchableOpacity 
+                      style={styles.btnDetailReport} 
+                      onPress={() => router.push(`/detail/${item.id}`)}
+                  >
+                      <Text style={styles.btnDetailText}>Lihat Detail & Update Status</Text>
+                      <Ionicons name="chevron-forward" size={16} color="#9e7363" />
+                  </TouchableOpacity>
+              </View>
+          </Animated.View>
+      );
+  };
 
   return (
     <View style={styles.container}>
@@ -123,6 +131,7 @@ const MySearchScreen = () => {
               >
                 <Text style={styles.btnActionText}>Buat Laporan Sekarang</Text>
               </TouchableOpacity>
+              
             </View>
           }
         />
@@ -160,6 +169,23 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 10,
     backgroundColor: '#eee' // Placeholder saat loading
+  },
+  cardFooter: {
+    borderTopWidth: 1,
+    borderTopColor: '#F1F3F5',
+    paddingTop: 15,
+    marginTop: 5,
+  },
+  btnDetailReport: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 5,
+  },
+  btnDetailText: {
+    color: '#9e7363', // Warna cokelat biar senada
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15 },
   cardBody: { marginBottom: 15 },

@@ -135,7 +135,7 @@ class KucingModel {
     // ✅ METHOD SEARCH (Untuk halaman Pencarian/Hilang)
     // backend/src/models/KucingModel.js
     async searchKucing(filters = {}) {
-        const { keyword, provinsi_id, kota, tags } = filters;
+        const { keyword, provinsi_id, kota, tags, status } = filters;
         
         let query = `
         SELECT 
@@ -299,7 +299,14 @@ class KucingModel {
               if (connection) connection.release();
           }
       }
-  
+      
+      // backend/src/models/KucingModel.js
+        async updateLaporanStatus(kucingId, status) {
+            const sql = `UPDATE kucing SET status = ? WHERE id = ?`;
+            const [result] = await this.db.execute(sql, [status, kucingId]);
+            return result;
+        }
+
     // =====================================================================
     // BAGIAN 3: RESCUE MODEL
     // =====================================================================

@@ -24,13 +24,13 @@ const AdoptKucing = () => {
   const [kucingList, setKucingList] = useState<Kucing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
-  
+
   // 1. Bungkus fetchKucingList dengan useCallback agar "stabil"
   const fetchKucingList = useCallback(async () => {
     setIsLoading(true);
-    console.log("Mencoba fetch ke:", `${BASE_URL}/api/kucing`);
+    console.log("Mencoba fetch ke:", `${BASE_URL}/kucing`);
     try {
-      const response = await api.get('/api/kucing'); 
+      const response = await api.get('/kucing'); 
       const result = response.data;
       const actualData = Array.isArray(result) ? result : (result.data || []);
 
@@ -171,9 +171,9 @@ const AdoptKucing = () => {
 
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => navigation.navigate('AjukanKucing')}
+        onPress={() => router.push('/form-ajuan')} // Arahkan ke file form-ajuan.tsx
         activeOpacity={0.8}
-      >
+        >
         <Text style={styles.fabIcon}>🏠</Text>
         <Text style={styles.fabText}>Daftarkan Kucing</Text>
       </TouchableOpacity>
