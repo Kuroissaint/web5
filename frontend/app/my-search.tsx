@@ -41,9 +41,9 @@ const MySearchScreen = () => {
   };
 
   const getStatusStyle = (status: string) => {
-    switch(status.toLowerCase()) {
-      case 'selesai': return { bg: '#E6F4EA', text: '#1E8E3E' };
-      case 'proses': return { bg: '#FEF7E0', text: '#B06000' };
+    switch(status?.toLowerCase()) {
+      case 'ditemukan': return { bg: '#E6F4EA', text: '#1E8E3E' }; // Hijau
+      case 'hilang': return { bg: '#FCE4EC', text: '#D32F2F' };    // Merah
       default: return { bg: '#F1F3F5', text: '#5F6368' };
     }
   };
@@ -51,7 +51,6 @@ const MySearchScreen = () => {
   const renderItem = ({ item, index }: any) => {
       const statusColor = getStatusStyle(item.status || 'hilang');
       
-      // Perbaiki URL Gambar: Gunakan BASE_URL dari services/api agar konsisten
       const imageUrl = item.foto ? `${BASE_URL}${item.foto}` : null;
 
       return (

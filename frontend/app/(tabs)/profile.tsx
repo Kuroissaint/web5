@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Colors } from '../../constants/Colors';
+import { authAPI } from '../../services/api';
 
 const ProfileScreen = () => {
   const router = useRouter();
@@ -16,6 +17,32 @@ const ProfileScreen = () => {
     };
     loadUser();
   }, []);
+
+  const handleLogout = async () => {
+    Alert.alert(
+      "Keluar",
+      "Apakah kamu yakin ingin keluar dari akun?",
+      [
+        { text: "Batal", style: "cancel" },
+        { 
+          text: "Keluar", 
+          style: "destructive",
+          onPress: async () => {
+            try {
+              // 1. Jalankan fungsi logout untuk hapus storage
+              await authAPI.logout(); 
+              
+              // 2. Arahkan ke halaman login menggunakan Expo Router
+              // Gunakan replace agar history navigasi terhapus
+              router.replace('/login'); 
+            } catch (error) {
+              Alert.alert("Error", "Gagal melakukan logout.");
+            }
+          }
+        }
+      ]
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -53,11 +80,14 @@ const ProfileScreen = () => {
         </TouchableOpacity>
 
         {/* Tombol Logout */}
-        <TouchableOpacity style={[styles.menuItem, {marginTop: 20}]} onPress={() => {/* Logika Logout */}}>
-          <View style={styles.menuLeft}>
+        <TouchableOpacity 
+        style={[styles.menuItem, {marginTop: 20}]} 
+        onPress={handleLogout} // Panggil fungsi handleLogout
+        >
+        <View style={styles.menuLeft}>
             <Ionicons name="log-out-outline" size={24} color="red" />
             <Text style={[styles.menuText, {color: 'red'}]}>Keluar Akun</Text>
-          </View>
+        </View>
         </TouchableOpacity>
       </View>
     </View>

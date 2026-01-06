@@ -47,11 +47,18 @@ class KucingController {
     }
   }
 
+
   async searchKucing(request, reply) {
     try {
-      const { q, provinsi_id, kota, tags } = request.query;
+      // TAMBAHKAN 'status' di sini (Baris 51)
+      const { q, provinsi_id, kota, tags, status } = request.query; 
+      
       const kucing = await this.kucingModel.searchKucing({ 
-        keyword: q, provinsi_id, kota, tags, status
+        keyword: q, 
+        provinsi_id, 
+        kota, 
+        tags, 
+        status 
       });
       return reply.send({ success: true, data: kucing });
     } catch (error) {

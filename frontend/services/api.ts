@@ -30,10 +30,9 @@ api.interceptors.request.use(
 export const authAPI = {
   login: (data: any) => api.post('/auth/login', data),
   register: (data: any) => api.post('/auth/register', data),
-  logout: async (navigation: any) => {
+  // UBAH INI: Hanya hapus data storage
+  logout: async () => {
     await AsyncStorage.multiRemove(['token', 'user']);
-    // Navigasi di React Native menggunakan reset, bukan window.location
-    navigation.reset({ index: 0, routes: [{ name: 'Login' }] });
   }
 };
 
