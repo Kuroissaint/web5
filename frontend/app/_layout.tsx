@@ -16,7 +16,7 @@ export default function RootLayout() {
           headerTintColor: '#9e7363',   // Warna tombol back & judul
         }} 
       />
-
+      <Stack.Screen name="aktivitas" options={{ title: 'Riwayat Aktivitas', headerShown: true }} />
     </Stack>
   );
 }

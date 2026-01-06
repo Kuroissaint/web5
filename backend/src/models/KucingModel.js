@@ -165,6 +165,10 @@ class KucingModel {
             query += ' AND lh.provinsi_id = ?';
             params.push(provinsi_id);
         }
+        if (status) {
+            query += ` AND k.status = ?`; // 'hilang' atau 'adopsi'
+            params.push(status);
+        }
         if (kota) {
             query += ' AND kab.nama_kabupaten_kota LIKE ?';
             params.push(`%${kota}%`);

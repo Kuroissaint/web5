@@ -89,6 +89,13 @@ export const adopsiAPI = {
   getByUser: (userId: string | number) => api.get(`/pengajuan/user/${userId}`),
 };
 
+// --- 8. CHAT API ---
+export const ChatService = {
+  getConversations: (userId: any) => api.get(`/chat/conversations/${userId}`),
+  getMessages: (id_percakapan: string) => api.get(`/chat/messages/${id_percakapan}`),
+  saveMessage: (data: any) => api.post('/chat/send', data),
+  markAsRead: (id_percakapan: string) => api.put(`/chat/read/${id_percakapan}`),
+};
 
 export const BASE_URL = 'http://192.168.1.6:3000'; 
 export const IMAGE_URL = `${BASE_URL}/uploads/`; 

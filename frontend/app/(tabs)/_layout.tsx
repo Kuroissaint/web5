@@ -22,6 +22,14 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="paw" size={28} color={color} />,
         }}
       />
+      <Tabs.Screen 
+        name="adopt" 
+        options={{ title: 'Adopsi', 
+        tabBarIcon: ({color}) => <Ionicons name="paw" size={24} color={color}/> }} />
+      <Tabs.Screen 
+        name="chats" 
+        options={{ title: 'Pesan', 
+        tabBarIcon: ({color}) => <Ionicons name="chatbubbles" size={24} color={color}/> }} />
       <Tabs.Screen
         name="profile"
         options={{

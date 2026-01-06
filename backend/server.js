@@ -2,6 +2,7 @@
 require('dotenv').config();
 const path = require('path');
 const fastify = require('fastify')({ logger: true });
+const fastifySocketIO = require('fastify-socket.io');
 const mysql = require('mysql2/promise');
 
 // --- 1. KONEKSI DATABASE ---
@@ -51,6 +52,10 @@ fastify.register(require('@fastify/jwt'), {
   secret: process.env.JWT_SECRET || 'rahasia_super_aman_meowment' 
 });
 
+fastify.register(fastifySocketIO, {
+  cors: { origin: '*' }
+});
+
 //Decorator untuk proteksi route
 fastify.decorate("authenticate", async function (request, reply) {
   try {
@@ -58,6 +63,21 @@ fastify.decorate("authenticate", async function (request, reply) {
   } catch (err) {
     reply.status(401).send({ success: false, message: "Sesi habis atau token salah. Silakan login kembali." });
   }
+});
+
+fastify.ready(err => {
+  if (err) throw err;
+  
+  // Pastikan io tersedia
+  if (!fastify.io) {
+    console.log("Mendekorasi fastify.io secara manual untuk v5...");
+    // Logika tambahan jika diperlukan
+  }
+
+  fastify.io.on('connection', (socket) => {
+    console.log('User connected:', socket.id);
+    // ... sisa kode socket kamu
+  });
 });
 
 // --- 3. PENDATAAN ROUTES & HEALTH CHECK ---
@@ -73,6 +93,7 @@ fastify.register(require('./src/routes/authRoutes'), { prefix: '/api/auth' });
 fastify.register(require('./src/routes/rescueRoutes'), { prefix: '/api/rescue' }); 
 fastify.register(require('./src/routes/pengajuanAdopsiRoutes'), { prefix: '/api' }); 
 fastify.register(require('./src/routes/aplikasiAdopsiRoutes'), { prefix: '/api' });
+fastify.register(require('./src/routes/chatRoutes'), { prefix: '/api/chat' });
 
 // --- 4. ERROR HANDLER ---
 
