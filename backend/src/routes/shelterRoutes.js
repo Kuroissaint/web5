@@ -5,42 +5,41 @@ module.exports = async function (fastify, opts) {
 
   // 1. Cek Status User (Apakah 'user' atau 'shelter')
   fastify.get('/cek-status/:id', async (request, reply) => {
-    const { id } = request.params;
     try {
+      const { id } = request.params;
+      
+      // Log untuk mempermudah debugging di console backend
+      console.log(`[DEBUG] Mengecek status untuk User ID: ${id}`);
+      
       // Mengambil status dari tabel pengguna
       const [rows] = await db.query("SELECT status FROM pengguna WHERE id = ?", [id]);
+      
       if (rows.length === 0) {
-        return reply.status(404).send({ success: false, message: "User tidak ditemukan" });
+        return reply.status(404).send({ 
+          success: false, 
+          message: "User tidak ditemukan" 
+        });
       }
-      return { success: true, data: rows[0] };
+
+      console.log(`[DEBUG] Status User ${id}:`, rows[0].status);
+      
+      return { 
+        success: true, 
+        data: rows[0] // Mengembalikan { status: 'user' } atau { status: 'shelter' }
+      };
+
     } catch (err) {
-      return reply.status(500).send({ success: false, message: "Database Error" });
+      console.error("❌ ERROR DATABASE (cek-status):", err.message);
+      return reply.status(500).send({ 
+        success: false, 
+        message: "Database Error", 
+        error: err.message,
+        hint: "Pastikan kolom 'status' ada di tabel 'pengguna' dan koneksi DB aktif."
+      });
     }
   });
 
-  async function shelterRoutes(fastify, options) {
-    // Debug untuk Cek Status
-    fastify.get('/cek-status/:id', async (request, reply) => {
-      try {
-        const { id } = request.params;
-        console.log(`[DEBUG] Menjalankan cek-status untuk UID: ${id}`);
-        
-        // Menggunakan try-catch untuk menangkap error SQL
-        const [rows] = await fastify.db.query("SELECT status FROM pengguna WHERE id = ?", [id]);
-        
-        console.log("[DEBUG] Hasil DB:", rows[0]);
-        return { success: true, data: rows[0] || { status: 'user' } };
-      } catch (error) {
-        console.error("❌ ERROR DI CEK-STATUS:", error.message);
-        // Kirim pesan error detail ke frontend agar kita tahu kolom apa yang hilang
-        return reply.status(500).send({ 
-          success: false, 
-          error: error.message,
-          hint: "Cek apakah kolom 'status' sudah ada di tabel pengguna" 
-        });
-      }
-    });
-}
   // 2. Kirim Pengajuan Form Shelter (Multipart)
+  // Pastikan di server.js sudah terdaftar @fastify/multipart
   fastify.post('/ajukan-shelter', handleAjukanShelter);
 };

@@ -1,6 +1,6 @@
 // src/controllers/pengajuanAdopsiController.js
 const PengajuanAdopsiModel = require('../models/pengajuanAdopsiModel');
-const PenggunaModel = require('../models/PenggunaModel'); 
+const PenggunaModel = require('../models/penggunaModel'); 
 const fs = require('fs').promises; 
 const path = require('path');
 

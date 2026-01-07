@@ -3,7 +3,7 @@ const bcrypt = require('bcrypt');
 const fs = require('fs').promises;
 const path = require('path');
 const SALT_ROUNDS = 10;
-
+const PenggunaModel = require('../models/penggunaModel');
 class AuthController {
     constructor(db) {
         this.db = db;
@@ -13,27 +13,45 @@ class AuthController {
     async login(request, reply) {
         const { email, password } = request.body;
         try {
+            // TAMBAHKAN: status, deskripsi_shelter, dan qr_donasi ke dalam query SELECT
             const [users] = await this.db.query(
-                'SELECT id, username, email, password_hash, foto_profil, provinsi_id FROM pengguna WHERE email = ?',
+                `SELECT id, username, email, password_hash, foto_profil, 
+                        provinsi_id, status, deskripsi_shelter, qr_donasi 
+                 FROM pengguna WHERE email = ?`,
                 [email]
             );
-
+    
             if (users.length === 0) {
                 return reply.status(401).send({ success: false, message: 'Email tidak ditemukan.' });
             }
-
+    
             const user = users[0];
             const isMatch = await bcrypt.compare(password, user.password_hash);
-
+    
             if (!isMatch) {
                 return reply.status(401).send({ success: false, message: 'Password salah.' });
             }
-
-            const token = request.server.jwt.sign({ id: user.id, email: user.email, username: user.username });
+    
+            // Simpan status di dalam token juga jika diperlukan untuk proteksi rute di backend
+            const token = request.server.jwt.sign({ 
+                id: user.id, 
+                email: user.email, 
+                username: user.username,
+                status: user.status // Tambahkan status ke payload JWT
+            });
+    
+            // Hapus password_hash sebelum dikirim ke frontend demi keamanan
             delete user.password_hash; 
-
-            return reply.send({ success: true, message: 'Login berhasil.', data: { token, user } });
+    
+            // Sekarang 'user' membawa data lengkap (status, deskripsi, qr) untuk disimpan di AsyncStorage
+            return reply.send({ 
+                success: true, 
+                message: 'Login berhasil.', 
+                data: { token, user } 
+            });
+    
         } catch (error) {
+            request.log.error(error);
             return reply.status(500).send({ success: false, message: 'Terjadi kesalahan pada server.' });
         }
     }
@@ -68,52 +86,57 @@ class AuthController {
     async updateProfile(request, reply) {
         try {
             const parts = request.body;
-            // Helper untuk mengambil value dari field multipart
-            const getValue = (field) => (field && field.value !== undefined ? field.value : field);
-            
-            // GUNAKAN ID DARI TOKEN (request.user.id) agar user tidak bisa edit profil orang lain lewat ID
             const userId = request.user.id; 
+            const getValue = (field) => (field && field.value !== undefined ? field.value : field);
     
-            let fotoPath = getValue(parts.existing_foto) || null;
+            let fotoProfilPath = getValue(parts.existing_foto_profil);
+            let qrDonasiPath = getValue(parts.existing_qr_donasi);
     
-            if (parts.foto && parts.foto.filename) {
-                const file = parts.foto;
-                const filename = `profile-${Date.now()}-${file.filename}`;
-                const uploadDir = path.join(__dirname, '../../uploads/profile');
-                const savePath = path.join(uploadDir, filename);
-    
-                try { await fs.access(uploadDir); } catch { await fs.mkdir(uploadDir, { recursive: true }); }
-    
-                const buffer = typeof file.toBuffer === 'function' ? await file.toBuffer() : file._buf;
-                await fs.writeFile(savePath, buffer);
-                fotoPath = `/uploads/profile/${filename}`;
+            // --- Logika Upload Foto Profil ---
+            if (parts.foto_profil && parts.foto_profil.filename) {
+                fotoProfilPath = await this.saveFile(parts.foto_profil, 'profile');
             }
     
-            const query = `UPDATE pengguna SET nama = ?, no_hp = ?, alamat = ?, foto_profil = ? WHERE id = ?`;
-            
-            // FIX: Tambahkan || null di setiap parameter agar tidak undefined
-            await this.db.execute(query, [
-                getValue(parts.nama) || null,
-                getValue(parts.no_hp) || null,
-                getValue(parts.alamat) || null,
-                fotoPath,
-                userId
-            ]);
+            // --- Logika Upload QR Donasi (Khusus Shelter) ---
+            if (parts.qr_donasi && parts.qr_donasi.filename) {
+                qrDonasiPath = await this.saveFile(parts.qr_donasi, 'qris');
+            }
     
-            const [updated] = await this.db.query(
-                'SELECT id, username, nama, email, foto_profil, no_hp, alamat FROM pengguna WHERE id = ?', 
-                [userId]
-            );
+            const penggunaModel = new PenggunaModel(this.db);
+            await penggunaModel.update(userId, {
+                username: getValue(parts.username),
+                no_hp: getValue(parts.no_hp),
+                alamat: getValue(parts.alamat),
+                foto: fotoProfilPath,
+                deskripsi_shelter: getValue(parts.deskripsi_shelter),
+                qr_donasi: qrDonasiPath
+            });
+    
+            const updatedUser = await penggunaModel.getById(userId);
             
             return reply.send({ 
                 success: true, 
                 message: "Profil berhasil diperbarui", 
-                user: updated[0] 
+                user: updatedUser 
             });
         } catch (error) {
             request.log.error(error);
             return reply.status(500).send({ success: false, message: error.message });
         }
     }
+
+    // Fungsi helper untuk simpan file agar kode tidak duplikat
+    async saveFile(file, folder) {
+        const filename = `${folder}-${Date.now()}-${file.filename}`;
+        const uploadDir = path.join(__dirname, `../../uploads/${folder}`);
+        const savePath = path.join(uploadDir, filename);
+
+        try { await fs.access(uploadDir); } catch { await fs.mkdir(uploadDir, { recursive: true }); }
+
+        const buffer = typeof file.toBuffer === 'function' ? await file.toBuffer() : file._buf;
+        await fs.writeFile(savePath, buffer);
+        return `/uploads/${folder}/${filename}`;
+    }
+
 }
 module.exports = AuthController;

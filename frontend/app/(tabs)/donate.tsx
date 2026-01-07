@@ -47,7 +47,7 @@ const DonateTab = () => {
   };
 
   const filteredShelters = shelters.filter((item: any) =>
-    item.nama?.toLowerCase().includes(searchQuery.toLowerCase())
+    item.username?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const renderHeader = () => (
@@ -73,7 +73,7 @@ const DonateTab = () => {
         <Ionicons name="business" size={30} color={Colors.primary} />
       </View>
       <View style={styles.info}>
-        <Text style={styles.shelterName}>{item.nama}</Text>
+        <Text style={styles.shelterName}>{item.username}</Text>
         
       </View>
       <Ionicons name="chevron-forward" size={20} color={Colors.border} />

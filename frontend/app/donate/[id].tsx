@@ -40,9 +40,9 @@ const DonateDetail = () => {
 
       <Text style={styles.label}>2. Scan QRIS di Bawah</Text>
       <View style={styles.qrisContainer}>
-        {shelter.qris_image ? (
+        {shelter.qr_donasi ? (
           <Image 
-            source={{ uri: `${BASE_URL}${shelter.qris_image}` }} 
+            source={{ uri: `${BASE_URL}${shelter.qr_donasi}` }} 
             style={styles.qrisImage} 
             resizeMode="contain"
           />
