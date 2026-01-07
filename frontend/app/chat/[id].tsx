@@ -9,50 +9,63 @@ import {
   KeyboardAvoidingView,
   Platform,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io } from 'socket.io-client';
-import { ChatService } from '../../services/api';
-import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // Gunakan Insets
+import { ChatService, getUserData } from '../../services/api';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const socket = io('http://192.168.1.3:3000'); // Pastikan IP ini sesuai IP Laptop Anda
+const socket = io('http://192.168.1.3:3000'); // Sesuaikan IP Laptop
 
 const ChatDetail = () => {
   const { id, name } = useLocalSearchParams(); 
   const router = useRouter();
-  const insets = useSafeAreaInsets(); // Untuk menangani area bawah HP
+  const insets = useSafeAreaInsets();
+  
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
   const [myId, setMyId] = useState<number | null>(null);
+  
+  // State untuk melacak ID Ruangan (Percakapan) yang asli
+  const [idPercakapan, setIdPercakapan] = useState<string | null>(null);
+  
   const flatListRef = useRef<FlatList>(null);
 
   useEffect(() => {
     setupChat();
+
     socket.on('receive_message', (newMessage) => {
-      if (newMessage.id_percakapan == id) {
+      // Terima pesan jika ID Ruangannya cocok
+      if (newMessage.id_percakapan == idPercakapan || newMessage.id_percakapan == id) {
         setMessages((prev) => [...prev, newMessage]);
       }
     });
+
     return () => { socket.off('receive_message'); };
-  }, [id]);
+  }, [id, idPercakapan]);
 
   const setupChat = async () => {
     try {
-      const userData = await AsyncStorage.getItem('user');
-      if (userData) {
-        const user = JSON.parse(userData);
+      const user = await getUserData();
+      if (user) {
         setMyId(user.id);
+        
+        // Coba ambil pesan (id bisa berupa ID Percakapan atau ID User Lawan)
         const response: any = await ChatService.getMessages(id as string);
-        // Akses data: response.data.data sesuai format backend
-        setMessages(response.data.data || []); 
-        await ChatService.markAsRead(id as string);
-        socket.emit('join_chat', id);
+        
+        if (response.data.success) {
+          setMessages(response.data.data || []);
+          setIdPercakapan(id as string);
+          socket.emit('join_chat', id);
+        }
       }
-    } catch (error) {
-      console.error('Gagal memuat chat:', error);
+    } catch (error: any) {
+      // Jika gagal, berarti ini chat baru (id adalah ID User lawan)
+      console.log('Chat baru dengan User ID:', id);
     } finally {
       setLoading(false);
     }
@@ -62,26 +75,39 @@ const ChatDetail = () => {
     if (inputText.trim() === '' || !myId) return;
 
     const messageData = {
-      id_percakapan: id,
+      id_percakapan: idPercakapan, // null jika chat pertama
       pengirim_id: myId,
+      penerima_id: id,            // ID lawan bicara
       pesan: inputText,
-      waktu: new Date().toISOString(),
-      is_read: 0
+      waktu: new Date().toISOString()
     };
 
     try {
-      // 1. Kirim via Socket
-      socket.emit('send_message', messageData);
+      // Simpan ke DB (Backend akan otomatis create percakapan jika belum ada)
+      const res = await ChatService.saveMessage(messageData);
 
-      // 2. Simpan ke database via API
-      await ChatService.saveMessage(messageData);
+      if (res.data.success) {
+        const newIdPercakapan = res.data.id_percakapan || idPercakapan;
 
-      // 3. PENTING: Update state lokal agar pesan langsung muncul di layar Anda
-      setMessages((prev) => [...prev, messageData]);
+        // Jika baru dibuat, join socket room-nya
+        if (!idPercakapan) {
+          setIdPercakapan(newIdPercakapan);
+          socket.emit('join_chat', newIdPercakapan);
+        }
 
-      setInputText('');
+        // Kirim via Socket
+        socket.emit('send_message', {
+          ...messageData,
+          id_percakapan: newIdPercakapan
+        });
+
+        // Update UI Lokal
+        setMessages((prev) => [...prev, { ...messageData, pengirim_id: myId }]);
+        setInputText('');
+      }
     } catch (error) {
-      console.error('Gagal mengirim pesan:', error);
+      console.error('Gagal kirim pesan:', error);
+      Alert.alert("Gagal", "Pesan tidak terkirim. Pastikan backend sudah diupdate.");
     }
   };
 
@@ -94,7 +120,7 @@ const ChatDetail = () => {
             {item.pesan}
           </Text>
           <Text style={styles.timeText}>
-            {new Date(item.waktu).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            {new Date(item.waktu || item.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
           </Text>
         </View>
       </View>
@@ -116,7 +142,6 @@ const ChatDetail = () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
       >
-        {/* Header */}
         <View style={styles.header}>
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={24} color="#313957" />
@@ -134,7 +159,6 @@ const ChatDetail = () => {
           onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
 
-        {/* Area Input dengan padding bawah dinamis */}
         <View style={[styles.inputArea, { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 }]}>
           <TextInput
             style={styles.input}

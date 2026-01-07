@@ -30,52 +30,53 @@ async function chatRoutes(fastify, options) {
     });
   
     // 3. Simpan pesan baru
+
     fastify.post('/send', async (request, reply) => {
         const { pengirim_id, penerima_id, pesan } = request.body;
         let { id_percakapan } = request.body;
     
         try {
-          // LOGIKA: Jika id_percakapan tidak ada/null, cari dulu apakah mereka sudah pernah chat
-          if (!id_percakapan) {
+        // 1. Jika id_percakapan tidak dikirim (chat baru), cari apakah mereka sudah punya percakapan
+        if (!id_percakapan || id_percakapan === "null" || id_percakapan === 0) {
             const [existing] = await db.query(
-              `SELECT id_percakapan FROM percakapan 
-               WHERE (id_user_1 = ? AND id_user_2 = ?) 
-               OR (id_user_1 = ? AND id_user_2 = ?)`,
-              [pengirim_id, penerima_id, penerima_id, pengirim_id]
+            `SELECT id_percakapan FROM percakapan 
+            WHERE (id_user_1 = ? AND id_user_2 = ?) 
+            OR (id_user_1 = ? AND id_user_2 = ?)`,
+            [pengirim_id, penerima_id, penerima_id, pengirim_id]
             );
     
             if (existing.length > 0) {
-              id_percakapan = existing[0].id_percakapan;
+            id_percakapan = existing[0].id_percakapan;
             } else {
-              // Jika benar-benar baru, buat baris baru di tabel percakapan
-              const [newConv] = await db.query(
+            // 2. Jika benar-benar baru, buat baris percakapan baru
+            const [newConv] = await db.query(
                 "INSERT INTO percakapan (id_user_1, id_user_2) VALUES (?, ?)",
                 [pengirim_id, penerima_id]
-              );
-              id_percakapan = newConv.insertId;
+            );
+            id_percakapan = newConv.insertId;
             }
-          }
+        }
     
-          // Simpan pesan menggunakan id_percakapan yang valid
-          const [result] = await db.query(
+        // 3. Simpan pesan ke tabel pesan menggunakan id_percakapan yang valid
+        const [result] = await db.query(
             "INSERT INTO pesan (id_percakapan, pengirim_id, pesan, is_read) VALUES (?, ?, ?, 0)",
             [id_percakapan, pengirim_id, pesan]
-          );
+        );
     
-          return { 
+        return { 
             success: true, 
             id_pesan: result.insertId, 
-            id_percakapan: id_percakapan // Kembalikan ID ini ke frontend
-          };
+            id_percakapan: id_percakapan // Kembalikan ID ini agar frontend bisa menyimpannya
+        };
         } catch (error) {
-          console.error("Database error saat kirim pesan:", error.message);
-          return reply.status(500).send({ 
+        console.error("❌ Database Error Chat:", error.message);
+        return reply.status(500).send({ 
             success: false, 
             message: "Database error", 
             error: error.message 
-          });
+        });
         }
-      });
+    });
   
     // 4. Tandai dibaca
     fastify.put('/read/:id_percakapan', { onRequest: [fastify.authenticate] }, async (request, reply) => {

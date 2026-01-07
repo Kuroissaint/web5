@@ -74,9 +74,7 @@ const DonateTab = () => {
       </View>
       <View style={styles.info}>
         <Text style={styles.shelterName}>{item.nama}</Text>
-        <Text style={styles.shelterDesc} numberOfLines={2}>
-          {item.deskripsi_shelter || "Membantu kucing-kucing liar mendapatkan perawatan dan rumah baru."}
-        </Text>
+        
       </View>
       <Ionicons name="chevron-forward" size={20} color={Colors.border} />
     </TouchableOpacity>
