@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 1. ⚠️ PENTING: Ganti '192.168.x.x' dengan IP lokal laptop Anda (cek di CMD via 'ipconfig')
 // Jangan gunakan localhost atau 127.0.0.1 karena tidak akan terdeteksi oleh HP/Emulator
-const IP_LAPTOP = '192.168.1.6'; 
+const IP_LAPTOP = '192.168.1.3'; 
 const API_BASE_URL = `http://${IP_LAPTOP}:3000/api`;
 
 const api = axios.create({
@@ -46,6 +46,7 @@ export const dataAPI = {
 export const kucingAPI = {
   getAll: () => api.get('/kucing'),
   getById: (id: string | number) => api.get(`/kucing/${id}`),
+  getByUser: (userId: number | string) => api.get(`/kucing/user/${userId}`),
   getJenis: () => api.get('/kucing/jenis'),
   search: (params: any) => api.get('/kucing/search', { params }),
   // Create menggunakan FormData untuk upload gambar
@@ -86,6 +87,15 @@ export const adopsiAPI = {
   submitAplikasi: (data: any) => api.post('/adopsi/submit', data),
   submitPengajuan: (data: any) => api.post('/pengajuan', data),
   getByUser: (userId: string | number) => api.get(`/pengajuan/user/${userId}`),
+  // 1. Ambil daftar kucing milik user (Hasil gabungan si P)
+  getKucingSaya: (userId: string | number) => api.get(`/kucing/saya/${userId}`),
+  
+  // 2. Ambil daftar pelamar untuk kucing tertentu
+  getPelamar: (kucingId: string | number) => api.get(`/kucing/pelamar/${kucingId}`),
+  
+  // 3. Update status pelamar (Terima/Tolak)
+  updateStatusPelamar: (id: string | number, status: string) => 
+    api.put(`/pelamar/status/${id}`, { status }),
 };
 
 // --- 8. CHAT API ---
@@ -96,7 +106,7 @@ export const ChatService = {
   markAsRead: (id_percakapan: string) => api.put(`/chat/read/${id_percakapan}`),
 };
 
-export const BASE_URL = 'http://192.168.1.6:3000'; 
+export const BASE_URL = 'http://192.168.1.3:3000'; 
 export const IMAGE_URL = `${BASE_URL}/uploads/`; 
 
 export default api;

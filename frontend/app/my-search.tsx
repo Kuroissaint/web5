@@ -126,7 +126,7 @@ const MySearchScreen = () => {
               <Text style={styles.emptySub}>Kamu belum pernah melaporkan kucing.</Text>
               <TouchableOpacity 
                 style={styles.btnAction}
-                onPress={() => router.push('/rescue')}
+                onPress={() => router.push('/searchReport')}
               >
                 <Text style={styles.btnActionText}>Buat Laporan Sekarang</Text>
               </TouchableOpacity>

@@ -197,6 +197,50 @@ async updateStatusLaporan(request, reply) {
   }
 }
 
+// Handler untuk mendapatkan daftar kucing milik user tertentu
+async getKucingSaya(request, reply) {
+  try {
+      const { userId } = request.params;
+      const results = await this.kucingModel.findByOwner(userId);
+      return reply.send({ success: true, data: results });
+  } catch (error) {
+      return reply.status(500).send({ success: false, error: error.message });
+  }
+}
+
+// Handler untuk mendapatkan daftar pelamar per kucing
+async getPelamarByKucing(request, reply) {
+  try {
+      const { kucingId } = request.params;
+      const results = await this.kucingModel.getPelamarByKucing(kucingId);
+      return reply.send({ success: true, data: results });
+  } catch (error) {
+      return reply.status(500).send({ success: false, error: error.message });
+  }
+}
+
+// Handler untuk update status pelamar & otomatis update status kucing
+async updateStatusPelamar(request, reply) {
+  try {
+      const { id } = request.params;
+      const { status } = request.body; // 'disetujui' atau 'ditolak'
+      
+      await this.kucingModel.updateStatusPelamar(id, status);
+      
+      // Jika disetujui, kucing otomatis jadi 'teradopsi'
+      if (status === 'disetujui') {
+          const kucingId = await this.kucingModel.getKucingIdByPelamar(id);
+          if (kucingId) {
+              await this.kucingModel.updateStatusKucing(kucingId, 'teradopsi');
+          }
+      }
+      
+      return reply.send({ success: true, message: `Pelamar ${status}` });
+  } catch (error) {
+      return reply.status(500).send({ success: false, error: error.message });
+  }
+}
+
 }
 
 module.exports = KucingController;

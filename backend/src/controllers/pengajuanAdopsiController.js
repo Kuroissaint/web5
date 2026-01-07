@@ -1,78 +1,86 @@
 // src/controllers/pengajuanAdopsiController.js
-const KucingModel = require('../models/KucingModel');
-const PengajuanAdopsiModel = require('../models/pengajuanAdopsiModel'); // Diasumsikan nama file modelnya sudah diperbaiki
+const PengajuanAdopsiModel = require('../models/pengajuanAdopsiModel');
 const PenggunaModel = require('../models/PenggunaModel'); 
-
-// Menggunakan Promise-based fs jika diperlukan
 const fs = require('fs').promises; 
 const path = require('path');
 
 class PengajuanAdopsiController {
-    // Controller harus menerima objek 'db' dan menggunakannya untuk membuat instance Model
+    // Controller menerima objek 'db' dari server.js
     constructor(db) {
+        this.db = db;
         this.pengajuanAdopsiModel = new PengajuanAdopsiModel(db);
         this.penggunaModel = new PenggunaModel(db);
     }
     
     // =================================================================
-    // 1. METHOD: BUAT PENGAJUAN (DENGAN TRANSAKSI)
+    // 1. METHOD: BUAT PENGAJUAN (DENGAN TRANSAKSI & MULTI-FOTO)
     // =================================================================
     async createPengajuanAdopsi(request, reply) {
       let connection;
       try {
-          // 1. Mulai Transaksi
-          connection = await request.server.db.getConnection();
+          // 1. Mulai Transaksi menggunakan pool db
+          connection = await this.db.getConnection();
           await connection.beginTransaction();
 
           const parts = request.body;
 
-          // Helper untuk menangani FormData yang mungkin berbentuk array/objek
+          // Helper untuk menangani field text dari FormData Fastify Multipart
           const getValue = (field) => {
               if (!field) return null;
               if (field.value !== undefined) return field.value;
               return field;
           };
 
+          const penggunaId = getValue(parts.pengguna_id);
+
           // --- LANGKAH 1: Simpan Data Kucing Baru ---
-          // Kita insert manual ke tabel kucing agar dapat ID-nya
+          // Tambahkan 'dibuat_oleh' agar muncul di tab "Kucing Saya"
           const [resKucing] = await connection.query(
-              `INSERT INTO kucing (nama_kucing, jenis_kelamin, umur, warna_bulu, deskripsi, sudah_steril, status, created_at) 
-               VALUES (?, ?, ?, ?, ?, ?, 'menunggu_verifikasi', NOW())`,
+              `INSERT INTO kucing (nama_kucing, jenis_kelamin, umur, warna_bulu, deskripsi, sudah_steril, status, created_at, dibuat_oleh) 
+               VALUES (?, ?, ?, ?, ?, ?, 'menunggu_verifikasi', NOW(), ?)`,
               [
                   getValue(parts.namaKucing),
-                  getValue(parts.jenisKelamin), // Pastikan frontend kirim 'Jantan'/'Betina'
+                  getValue(parts.jenisKelamin),
                   getValue(parts.usia),
                   getValue(parts.warnaBulu),
                   getValue(parts.deskripsi),
-                  getValue(parts.sudahSteril)
+                  getValue(parts.sudahSteril),
+                  penggunaId
               ]
           );
           
-          const newKucingId = resKucing.insertId; // ID Kucing didapat!
+          const newKucingId = resKucing.insertId;
 
-          // --- LANGKAH 2: Simpan Foto Kucing (Jika ada) ---
+          // --- LANGKAH 2: Simpan Banyak Foto (FIX error toBuffer) ---
           if (parts.foto) {
-              const file = parts.foto;
-              const filename = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${file.filename}`;
-              const savePath = path.join(__dirname, '../../uploads', filename);
+              // Pastikan diproses sebagai array (jika user kirim > 1 foto)
+              const files = Array.isArray(parts.foto) ? parts.foto : [parts.foto];
               
-              // Simpan file fisik
-              if (!require('fs').existsSync(path.dirname(savePath))) require('fs').mkdirSync(path.dirname(savePath), { recursive: true });
-              await require('fs').promises.writeFile(savePath, await file.toBuffer());
+              for (const file of files) {
+                  const filename = `${Date.now()}-${Math.floor(Math.random() * 1000)}-${file.filename}`;
+                  const savePath = path.join(__dirname, '../../uploads', filename);
+                  
+                  // Pastikan folder uploads ada secara fisik
+                  const uploadDir = path.dirname(savePath);
+                  try { await fs.access(uploadDir); } catch { await fs.mkdir(uploadDir, { recursive: true }); }
 
-              // Simpan path ke DB
-              const urlGambar = `/uploads/${filename}`;
-              await connection.query(
-                  `INSERT INTO gambar (jenis_entitas, entitas_id, url_gambar, nama_file) VALUES ('kucing', ?, ?, ?)`,
-                  [newKucingId, urlGambar, filename]
-              );
+                  // Ambil buffer secara aman (mendukung .toBuffer atau ._buf)
+                  const buffer = typeof file.toBuffer === 'function' ? await file.toBuffer() : file._buf;
+                  await fs.writeFile(savePath, buffer);
+
+                  // Simpan referensi path ke tabel gambar
+                  const urlGambar = `/uploads/${filename}`;
+                  await connection.query(
+                      `INSERT INTO gambar (jenis_entitas, entitas_id, url_gambar, nama_file) VALUES ('kucing', ?, ?, ?)`,
+                      [newKucingId, urlGambar, filename]
+                  );
+              }
           }
 
-          // --- LANGKAH 3: Simpan Pengajuan Adopsi ---
-          // Menggunakan ID Kucing yang baru dibuat
+          // --- LANGKAH 3: Simpan Data Detail Pengajuan ---
           await this.pengajuanAdopsiModel.create({
-              pengguna_id: getValue(parts.pengguna_id),
-              kucing_id: newKucingId, // PENTING: Link ke kucing baru
+              pengguna_id: penggunaId,
+              kucing_id: newKucingId,
               nama_lengkap: getValue(parts.nama_lengkap),
               telepon: getValue(parts.telepon),
               provinsi_id: getValue(parts.provinsi_id),
@@ -82,6 +90,7 @@ class PengajuanAdopsiController {
               biaya_adopsi: getValue(parts.biayaAdopsi) || 0
           }, connection);
 
+          // Selesaikan transaksi
           await connection.commit();
 
           return reply.status(201).send({ 
@@ -97,47 +106,36 @@ class PengajuanAdopsiController {
       } finally {
           if (connection) connection.release();
       }
-  }
+    }
 
     // =================================================================
-    // 2. METHOD: GET PENGAJUAN USER (menggantikan exports.getPengajuanUser)
+    // 2. METHOD: GET PENGAJUAN USER
     // =================================================================
     async getPengajuanByUserId(request, reply) {
         try {
-            // Ambil parameter dari request.params Fastify
-            const userId = request.params.userId;
-
-            // Panggil model menggunakan async/await
+            const { userId } = request.params;
             const rows = await this.pengajuanAdopsiModel.getByUserId(userId); 
 
-            // Respon Fastify
             return reply.send({
                 success: true,
                 data: rows
             });
-            
         } catch (error) {
             console.error("Error fetch pengajuan:", error);
-            throw new Error(`Gagal mengambil data pengajuan user: ${error.message}`); 
+            return reply.status(500).send({ success: false, message: error.message });
         }
     }
-    
-    // --- TAMBAH METHOD LAIN YANG MUNGKIN DIPERLUKAN (sesuai routes) ---
 
-    // Contoh: Method yang dipanggil di rute fastify.get('/pengajuan', ...)
     async getAllPengajuanAdopsi(request, reply) {
-        // Implementasi untuk ambil semua pengajuan
         try {
              const rows = await this.pengajuanAdopsiModel.getAll(); 
              return reply.send({ success: true, data: rows });
         } catch (error) {
-             throw new Error(`Gagal mengambil semua pengajuan: ${error.message}`);
+            return reply.status(500).send({ success: false, message: error.message });
         }
     }
-    
-    // Contoh: Method yang dipanggil di rute fastify.get('/pengajuan/:id', ...)
+
     async getDetailPengajuanAdopsi(request, reply) {
-        // Implementasi untuk ambil detail pengajuan berdasarkan ID
         try {
             const { id } = request.params;
             const data = await this.pengajuanAdopsiModel.getById(id);
@@ -146,20 +144,18 @@ class PengajuanAdopsiController {
             }
             return reply.send({ success: true, data: data });
         } catch (error) {
-            throw new Error(`Gagal mengambil detail pengajuan: ${error.message}`);
+            return reply.status(500).send({ success: false, message: error.message });
         }
     }
-    
-    // Contoh: Method yang dipanggil di rute fastify.put('/pengajuan/:id/status', ...)
+
     async updateStatusPengajuan(request, reply) {
-        // Implementasi untuk update status
         try {
             const { id } = request.params;
             const { status } = request.body;
             await this.pengajuanAdopsiModel.updateStatus(id, status);
-            return reply.send({ success: true, message: 'Status berhasil diupdate' });
+            return reply.send({ success: true, message: 'Status berhasil diperbarui' });
         } catch (error) {
-            throw new Error(`Gagal mengupdate status: ${error.message}`);
+            return reply.status(500).send({ success: false, message: error.message });
         }
     }
 }

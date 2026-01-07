@@ -17,7 +17,7 @@ import { io } from 'socket.io-client';
 import { ChatService, IMAGE_URL } from '../../services/api';
 
 // Sesuaikan dengan IP Laptop Anda
-const socket = io('http://192.168.1.6:3000');
+const socket = io('http://192.168.1.3:3000');
 
 const ChatDetail = () => {
   const { id, name } = useLocalSearchParams(); // 'id' adalah id_percakapan

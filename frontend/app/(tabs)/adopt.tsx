@@ -1,13 +1,14 @@
-import api, { BASE_URL, kucingAPI } from '../../services/api';
-import axios from 'axios';
-import { useRouter } from 'expo-router';
-import { useFocusEffect } from '@react-navigation/native';
-import React, { useState, useCallback } from 'react'; // Hapus useEffect jika tidak dipakai lagi
+import React, { useState, useCallback } from 'react';
 import { 
   View, Text, TextInput, FlatList, Image, TouchableOpacity, 
   StyleSheet, ActivityIndicator, StatusBar, Pressable 
 } from 'react-native';
+import { useRouter } from 'expo-router';
+import { useFocusEffect } from '@react-navigation/native';
+import api, { BASE_URL } from '../../services/api';
+import { Colors } from '../../constants/Colors';
 
+// Tipe data sesuai standar si P
 interface Kucing {
   id: number;
   nama: string;
@@ -25,11 +26,11 @@ const AdoptKucing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // 1. Bungkus fetchKucingList dengan useCallback agar "stabil"
+  // 1. Logika Fetch dengan Mapping Foto yang lebih kuat dari si P
   const fetchKucingList = useCallback(async () => {
     setIsLoading(true);
-    console.log("Mencoba fetch ke:", `${BASE_URL}/kucing`);
     try {
+      // Panggil /kucing (api.ts sudah punya prefix /api)
       const response = await api.get('/kucing'); 
       const result = response.data;
       const actualData = Array.isArray(result) ? result : (result.data || []);
@@ -38,6 +39,7 @@ const AdoptKucing = () => {
         const fotoString = k.url_gambar || "";
         const daftarFoto = fotoString.split(',').filter((f: string) => f.trim() !== "");
 
+        // Logika pembersihan URL Gambar agar tidak pecah
         const galeriLengkap = daftarFoto.map((namaFile: string) => {
           const file = namaFile.trim();
           if (file.startsWith('http')) return file;
@@ -55,24 +57,24 @@ const AdoptKucing = () => {
           warnaBulu: k.warna_bulu,
           jenisKelamin: k.jenis_kelamin,
           deskripsi: k.deskripsi,
-          kota: k.nama_kabupaten_kota || "Tidak ada lokasi",
+          kota: k.nama_kabupaten_kota || "Lokasi tidak tersedia",
           galeri: galeriLengkap,
         };
       });
 
       setKucingList(mappedData);
     } catch (error: any) {
-      console.error('Fetch Error:', error.message);
+      console.error('Fetch Error Adopsi:', error.message);
     } finally {
       setIsLoading(false);
     }
-  }, []); // [] artinya fungsi ini tidak berubah-ubah
+  }, []);
 
-  // 2. Gunakan useFocusEffect untuk auto-refresh
+  // 2. Auto-refresh saat halaman mendapatkan fokus
   useFocusEffect(
     useCallback(() => {
       fetchKucingList(); 
-    }, [fetchKucingList]) // fetchKucingList dimasukkan ke sini agar tidak merah
+    }, [fetchKucingList])
   );
 
   const filteredCats = kucingList.filter(kucing =>
@@ -80,7 +82,7 @@ const AdoptKucing = () => {
     kucing.kota.toLowerCase().includes(pencarian.toLowerCase())
   );
 
-  const renderCatCard = ({ item }: { item: any }) => (
+  const renderCatCard = ({ item }: { item: Kucing }) => (
     <Pressable 
       onPress={() => router.push({ pathname: `/adopt/${item.id}`, params: { cat: JSON.stringify(item) } })}
       style={styles.catCard}
@@ -93,6 +95,7 @@ const AdoptKucing = () => {
             ) : (
               <View style={styles.imagePlaceholder} />
             )}
+            {/* Badge Gender dari si P */}
             <View style={[
               styles.genderBadge, 
               { backgroundColor: item.jenisKelamin.toLowerCase() === 'jantan' ? '#E3F2FD' : '#FCE4EC' }
@@ -113,6 +116,7 @@ const AdoptKucing = () => {
               <View style={styles.chip}><Text style={styles.chipText}>{item.umur} Bln</Text></View>
               <View style={styles.chip}><Text style={styles.chipText}>{item.warnaBulu}</Text></View>
             </View>
+            {/* Button Detail yang Responsif */}
             <View style={[
               styles.btnDetail, 
               { 
@@ -162,18 +166,18 @@ const AdoptKucing = () => {
             columnWrapperStyle={styles.row}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
-            // Tambahkan ini agar bisa ditarik ke bawah untuk refresh manual
             onRefresh={fetchKucingList}
             refreshing={isLoading}
           />
         )}
       </View>
 
+      {/* FAB: Daftar Kucing Milikmu */}
       <TouchableOpacity 
         style={styles.fab}
-        onPress={() => router.push('/form-ajuan')} // Arahkan ke file form-ajuan.tsx
+        onPress={() => router.push('/form-ajuan')} 
         activeOpacity={0.8}
-        >
+      >
         <Text style={styles.fabIcon}>🏠</Text>
         <Text style={styles.fabText}>Daftarkan Kucing</Text>
       </TouchableOpacity>
@@ -181,7 +185,6 @@ const AdoptKucing = () => {
   );
 };
 
-// ... Styles tetap sama ...
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8F9FB' },
   header: { 
@@ -199,7 +202,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     elevation: 8,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 10,
   },
@@ -214,10 +216,6 @@ const styles = StyleSheet.create({
     marginBottom: 20, 
     width: '48%', 
     elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
     overflow: 'hidden'
   },
   imageWrapper: { width: '100%', height: 160, position: 'relative' },
@@ -231,17 +229,8 @@ const styles = StyleSheet.create({
   chipContainer: { flexDirection: 'row', gap: 6, marginBottom: 15 },
   chip: { backgroundColor: '#F5F5F5', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8 },
   chipText: { fontSize: 10, color: '#666', fontWeight: 'bold' },
-  btnDetail: {
-    paddingVertical: 10,
-    borderRadius: 12,
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#f7961d20',
-  },
-  btnDetailText: {
-    fontWeight: 'bold',
-    fontSize: 13,
-  },
+  btnDetail: { paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#f7961d20' },
+  btnDetailText: { fontWeight: 'bold', fontSize: 13 },
   fab: {
     position: 'absolute',
     bottom: 30,

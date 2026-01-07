@@ -46,32 +46,18 @@ class KucingModel {
   
     // 2. Fungsi SELECT untuk halaman Adopsi (Original KucingModel)
     async findAll() {
-      const [rows] = await this.db.execute(
+        const [rows] = await this.db.execute(
           `SELECT 
-              k.id, k.nama_kucing, k.jenis_kelamin, k.umur, k.warna_bulu, k.deskripsi, k.sudah_steril,
-              pa.biaya_adopsi, pa.alamat_lengkap,
-              p.nama_provinsi, kk.nama_kabupaten_kota, kc.nama_kecamatan,
-              g.url_gambar
-              FROM kucing k
-              -- Menggunakan JOIN (bisa LEFT atau INNER). 
-              -- INNER JOIN memastikan hanya kucing yang punya data 'pengajuan_adopsi' (listing adopsi) yang muncul.
-              JOIN pengajuan_adopsi pa on pa.kucing_id = k.id
-              LEFT JOIN provinsi p ON pa.provinsi_id = p.id
-              LEFT JOIN kabupaten_kota kk ON pa.kabupaten_kota_id = kk.id
-              LEFT JOIN kecamatan kc ON pa.kecamatan_id = kc.id
-              LEFT JOIN gambar g ON k.id = g.entitas_id AND g.jenis_entitas = 'kucing'
-              
-              -- ✅ FILTER PENTING:
-              -- 1. Status tidak boleh 'hilang' (karena itu untuk fitur Lost & Found)
-              -- 2. Status tidak boleh 'teradopsi' (jika sudah laku)
-              -- 3. Atau statusnya NULL (biasanya kucing adopsi statusnya NULL atau 'available')
-              WHERE (k.status IS NULL OR k.status != 'hilang') 
-                AND (k.status != 'teradopsi' OR k.status IS NULL)
-              
-              GROUP BY k.id -- Mencegah duplikat jika gambar lebih dari satu
-              ORDER BY k.created_at DESC`
-          );
-          return rows;
+              k.id, k.nama_kucing, k.jenis_kelamin, k.umur, k.warna_bulu, k.status,
+              pa.biaya_adopsi, pa.alamat_lengkap, g.url_gambar
+           FROM kucing k
+           LEFT JOIN pengajuan_adopsi pa on pa.kucing_id = k.id
+           LEFT JOIN gambar g ON k.id = g.entitas_id AND g.jenis_entitas = 'kucing'
+           WHERE (k.status IS NULL OR k.status != 'teradopsi')
+           GROUP BY k.id
+           ORDER BY k.created_at DESC`
+        );
+        return rows;
       }
   
     // 3. Fungsi Detail untuk Adopsi (Original KucingModel - findById)
@@ -104,28 +90,19 @@ class KucingModel {
         return rows[0] || null;
     }
   
-      async getByUserId(userId) {
-          const sql = `
+    async getByUserId(userId) {
+        const sql = `
           SELECT 
-              k.id, 
-              k.nama_kucing, 
-              k.status, 
-              k.deskripsi, 
-              k.created_at,
-              -- Mengambil lokasi dari laporan_hilang ( Lost & Found)
-              CONCAT(COALESCE(kec.nama_kecamatan, ''), ', ', COALESCE(kab.nama_kabupaten_kota, ''), ', ', COALESCE(p.nama_provinsi, '')) as lokasi_display,
-              -- Mengambil foto pertama dari tabel gambar
+              k.id, k.nama_kucing, k.status, k.deskripsi, k.created_at,
+              -- Mengambil foto pertama
               (SELECT url_gambar FROM gambar WHERE entitas_id = k.id AND jenis_entitas = 'kucing' LIMIT 1) as foto
           FROM kucing k
-          LEFT JOIN laporan_hilang lh ON k.id = lh.kucing_id
-          LEFT JOIN provinsi p ON lh.provinsi_id = p.id
-          LEFT JOIN kabupaten_kota kab ON lh.kabupaten_kota_id = kab.id
-          LEFT JOIN kecamatan kec ON lh.kecamatan_id = kec.id
-          WHERE k.pengguna_id = ? 
+          -- Gunakan COALESCE untuk menangani kolom yang mungkin berbeda (pengguna_id atau dibuat_oleh)
+          WHERE (k.pengguna_id = ? OR k.dibuat_oleh = ?) 
           ORDER BY k.created_at DESC
-          `;
-          const [rows] = await this.db.execute(sql, [userId]);
-          return rows;
+        `;
+        const [rows] = await this.db.execute(sql, [userId, userId]);
+        return rows;
       }
   
     // =====================================================================
@@ -399,6 +376,54 @@ class KucingModel {
         const sql = `INSERT INTO tag_kucing (kucing_id, tag_id, created_at) VALUES (?, ?, ?)`;
         const [result] = await this.db.execute(sql, [data.kucing_id, data.tag_id, data.created_at]);
         return result.insertId;
+    }
+
+    // 1. Fungsi untuk mengambil daftar orang yang melamar kucing tertentu
+    async getPelamarByKucing(kucingId) {
+        const [rows] = await this.db.execute(
+            `SELECT id, nama_lengkap, telepon, pekerjaan, umur, alamat_lengkap, 
+            pernah_pelihara_kucing, alasan_adopsi, status, created_at 
+            FROM aplikasi_adopsi WHERE kucing_id = ?`, 
+            [kucingId]
+        );
+        return rows;
+    }
+
+    // 2. Fungsi untuk update status pelamar (Setuju/Tolak)
+    async updateStatusPelamar(id, status) {
+        const query = "UPDATE aplikasi_adopsi SET status = ? WHERE id = ?";
+        const [result] = await this.db.execute(query, [status, id]);
+        return result;
+    }
+
+    // 3. Fungsi untuk otomatis ubah status kucing jadi 'teradopsi'
+    async updateStatusKucing(kucingId, status) {
+        const query = "UPDATE kucing SET status = ? WHERE id = ?";
+        const [result] = await this.db.execute(query, [status, kucingId]);
+        return result;
+    }
+
+    // 4. Fungsi pembantu mencari kucingId berdasarkan pelamarId
+    async getKucingIdByPelamar(pelamarId) {
+        const [rows] = await this.db.execute(
+            "SELECT kucing_id FROM aplikasi_adopsi WHERE id = ?", 
+            [pelamarId]
+        );
+        return rows[0] ? rows[0].kucing_id : null;
+    }
+
+    // 5. Fungsi "Kucing Saya" dengan perhitungan jumlah pelamar
+    async findByOwner(userId) {
+        const query = `
+        SELECT 
+            k.id, k.nama_kucing, k.status, k.created_at,
+            (SELECT url_gambar FROM gambar WHERE entitas_id = k.id AND jenis_entitas = 'kucing' LIMIT 1) as url_gambar,
+            (SELECT COUNT(*) FROM aplikasi_adopsi WHERE kucing_id = k.id) as jumlah_pelamar
+        FROM kucing k
+        WHERE k.dibuat_oleh = ?
+        `;
+        const [rows] = await this.db.execute(query, [userId]);
+        return rows;
     }
   }
   
