@@ -82,6 +82,24 @@ export const rescueAPI = {
     api.put(`/api/rescue/${id}/status`, { status })
 };
 
+export const getRescue = async () => {
+  try {
+    const res = await api.get("/rescue"); 
+    // Mengembalikan data di dalam { success: true, data: [...] }
+    return res.data.data || res.data || [];
+  } catch (e: any) {
+    console.error("Gagal ambil rescue:", e.message);
+    return [];
+  }
+};
+
+export const createRescue = async (formData: FormData) => {
+  const res = await api.post("/rescue", formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+  return res.data;
+};
+
 // --- 7. ADOPSI API ---
 export const adopsiAPI = {
   submitAplikasi: (data: any) => api.post('/adopsi/submit', data),

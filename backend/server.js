@@ -91,6 +91,7 @@ fastify.register(require('./src/routes/wilayahRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/donasiRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/authRoutes'), { prefix: '/api/auth' }); 
 fastify.register(require('./src/routes/rescueRoutes'), { prefix: '/api/rescue' }); 
+fastify.register(require('./src/routes/shelterRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/pengajuanAdopsiRoutes'), { prefix: '/api' }); 
 fastify.register(require('./src/routes/aplikasiAdopsiRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/chatRoutes'), { prefix: '/api/chat' });

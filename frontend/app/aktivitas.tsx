@@ -38,15 +38,28 @@ const AdopsiSayaTab = () => {
         keyExtractor={(item: any) => item.id.toString()}
         ListEmptyComponent={<Text style={styles.emptyText}>Belum ada permohonan adopsi.</Text>}
         renderItem={({ item }) => (
-          <View style={styles.card}>
-            <Text style={styles.catName}>Mencoba Mengadopsi: {item.nama_kucing}</Text>
-            <View style={[styles.badge, {backgroundColor: item.status === 'disetujui' ? '#e8f5e9' : '#fff3e0'}]}>
-              <Text style={{color: item.status === 'disetujui' ? 'green' : 'orange', fontWeight: 'bold'}}>
-                Status: {item.status || 'Menunggu'}
+            <View style={styles.card}>
+              <View style={{flexDirection: 'row', alignItems: 'center'}}>
+                 {/* Pastikan path gambar digabung dengan BASE_URL agar muncul */}
+                 {item.foto ? (
+                   <Image 
+                     source={{uri: item.foto.startsWith('http') ? item.foto : `${BASE_URL}${item.foto}`}} 
+                     style={{width: 60, height: 60, borderRadius: 12, marginRight: 12}} 
+                   />
+                 ) : (
+                   <View style={{width: 60, height: 60, borderRadius: 12, backgroundColor: '#eee', marginRight: 12}} />
+                 )}
+                 
+                 <View style={{flex: 1}}>
+                    <Text style={styles.catName}>{item.nama_kucing}</Text>
+                    <Text style={styles.infoText}>Status: {item.status || 'Tersedia'}</Text>
+                 </View>
+              </View>
+              <Text style={[styles.infoText, {marginTop: 10, textAlign: 'right'}]}>
+                Diposting: {new Date(item.created_at).toLocaleDateString('id-ID')}
               </Text>
             </View>
-          </View>
-        )}
+          )}
       />
     </View>
   );

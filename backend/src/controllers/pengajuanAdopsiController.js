@@ -34,20 +34,19 @@ class PengajuanAdopsiController {
           const penggunaId = getValue(parts.pengguna_id);
 
           // --- LANGKAH 1: Simpan Data Kucing Baru ---
-          // Tambahkan 'dibuat_oleh' agar muncul di tab "Kucing Saya"
           const [resKucing] = await connection.query(
-              `INSERT INTO kucing (nama_kucing, jenis_kelamin, umur, warna_bulu, deskripsi, sudah_steril, status, created_at, dibuat_oleh) 
-               VALUES (?, ?, ?, ?, ?, ?, 'menunggu_verifikasi', NOW(), ?)`,
-              [
-                  getValue(parts.namaKucing),
-                  getValue(parts.jenisKelamin),
-                  getValue(parts.usia),
-                  getValue(parts.warnaBulu),
-                  getValue(parts.deskripsi),
-                  getValue(parts.sudahSteril),
-                  penggunaId
-              ]
-          );
+            `INSERT INTO kucing (nama_kucing, jenis_kelamin, umur, warna_bulu, deskripsi, sudah_steril, status, created_at, pengguna_id, kategori) 
+             VALUES (?, ?, ?, ?, ?, ?, 'tersedia', NOW(), ?, 'adopt')`, 
+            [
+                getValue(parts.namaKucing),
+                getValue(parts.jenisKelamin),
+                getValue(parts.usia),
+                getValue(parts.warnaBulu),
+                getValue(parts.deskripsi),
+                getValue(parts.sudahSteril),
+                penggunaId
+            ]
+        );
           
           const newKucingId = resKucing.insertId;
 

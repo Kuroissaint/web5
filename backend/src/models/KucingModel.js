@@ -45,6 +45,8 @@ class KucingModel {
     }
   
     // 2. Fungsi SELECT untuk halaman Adopsi (Original KucingModel)
+    // backend/src/models/KucingModel.js
+
     async findAll() {
         const [rows] = await this.db.execute(
           `SELECT 
@@ -53,12 +55,13 @@ class KucingModel {
            FROM kucing k
            LEFT JOIN pengajuan_adopsi pa on pa.kucing_id = k.id
            LEFT JOIN gambar g ON k.id = g.entitas_id AND g.jenis_entitas = 'kucing'
-           WHERE (k.status IS NULL OR k.status != 'teradopsi')
+           -- FIX: Sekarang filter berdasarkan kategori 'adopt'
+           WHERE k.kategori = 'adopt' AND (k.status IS NULL OR k.status != 'teradopsi')
            GROUP BY k.id
            ORDER BY k.created_at DESC`
         );
         return rows;
-      }
+    }
   
     // 3. Fungsi Detail untuk Adopsi (Original KucingModel - findById)
     async findById(id) {
@@ -90,20 +93,20 @@ class KucingModel {
         return rows[0] || null;
     }
   
+    // backend/src/models/KucingModel.js
+
     async getByUserId(userId) {
         const sql = `
           SELECT 
               k.id, k.nama_kucing, k.status, k.deskripsi, k.created_at,
-              -- Mengambil foto pertama
               (SELECT url_gambar FROM gambar WHERE entitas_id = k.id AND jenis_entitas = 'kucing' LIMIT 1) as foto
           FROM kucing k
-          -- Gunakan COALESCE untuk menangani kolom yang mungkin berbeda (pengguna_id atau dibuat_oleh)
-          WHERE (k.pengguna_id = ? OR k.dibuat_oleh = ?) 
+          WHERE k.pengguna_id = ? -- ✅ Sekarang hanya satu kolom yang dicek
           ORDER BY k.created_at DESC
         `;
-        const [rows] = await this.db.execute(sql, [userId, userId]);
+        const [rows] = await this.db.execute(sql, [userId]);
         return rows;
-      }
+    }
   
     // =====================================================================
     // BAGIAN 2: SEARCH MODEL (PENCARIAN & LAPORAN HILANG)
@@ -129,7 +132,7 @@ class KucingModel {
         LEFT JOIN jenis_kucing jk ON k.jenis_kucing_id = jk.id
         LEFT JOIN tag_kucing tk ON k.id = tk.kucing_id  
         LEFT JOIN tag t ON tk.tag_id = t.id
-        WHERE k.status = 'hilang'
+        WHERE k.kategori = 'search'
         `;
         
         const params = [];
@@ -221,10 +224,10 @@ class KucingModel {
   
               // 1. INSERT KUCING (WAJIB masukkan pengguna_id/dibuat_oleh)
               const [kucingResult] = await connection.execute(
-                  `INSERT INTO kucing (nama_kucing, jenis_kucing_id, deskripsi, status, pengguna_id, created_at) 
-                  VALUES (?, ?, ?, 'hilang', ?, NOW())`, // Sesuaikan nama kolom (pengguna_id / dibuat_oleh)
-                  [data.nama_kucing, jenisKucingId, data.deskripsi, data.pengguna_id]
-              );
+                `INSERT INTO kucing (nama_kucing, jenis_kucing_id, deskripsi, status, pengguna_id, kategori, created_at) 
+                VALUES (?, ?, ?, 'hilang', ?, 'search', NOW())`, // ✅ Tambahkan kategori 'search'
+                [data.nama_kucing, jenisKucingId, data.deskripsi, data.pengguna_id]
+            );
               const newKucingId = kucingResult.insertId;
   
               // 2. INSERT LAPORAN HILANG (WAJIB masukkan pengguna_id)
@@ -420,7 +423,7 @@ class KucingModel {
             (SELECT url_gambar FROM gambar WHERE entitas_id = k.id AND jenis_entitas = 'kucing' LIMIT 1) as url_gambar,
             (SELECT COUNT(*) FROM aplikasi_adopsi WHERE kucing_id = k.id) as jumlah_pelamar
         FROM kucing k
-        WHERE k.dibuat_oleh = ?
+        WHERE k.pengguna_id = ? 
         `;
         const [rows] = await this.db.execute(query, [userId]);
         return rows;

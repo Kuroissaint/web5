@@ -26,11 +26,10 @@ const AdoptKucing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // 1. Logika Fetch dengan Mapping Foto yang lebih kuat dari si P
+  // 1. Logika Fetch dengan Mapping Foto yang lebih kuat
   const fetchKucingList = useCallback(async () => {
     setIsLoading(true);
     try {
-      // Panggil /kucing (api.ts sudah punya prefix /api)
       const response = await api.get('/kucing'); 
       const result = response.data;
       const actualData = Array.isArray(result) ? result : (result.data || []);
@@ -39,7 +38,6 @@ const AdoptKucing = () => {
         const fotoString = k.url_gambar || "";
         const daftarFoto = fotoString.split(',').filter((f: string) => f.trim() !== "");
 
-        // Logika pembersihan URL Gambar agar tidak pecah
         const galeriLengkap = daftarFoto.map((namaFile: string) => {
           const file = namaFile.trim();
           if (file.startsWith('http')) return file;
@@ -77,62 +75,69 @@ const AdoptKucing = () => {
     }, [fetchKucingList])
   );
 
+  // FIX: Tambahkan pengaman '?' agar tidak crash jika nama/kota NULL
   const filteredCats = kucingList.filter(kucing =>
-    kucing.nama.toLowerCase().includes(pencarian.toLowerCase()) ||
-    kucing.kota.toLowerCase().includes(pencarian.toLowerCase())
+    kucing.nama?.toLowerCase().includes(pencarian.toLowerCase()) ||
+    kucing.kota?.toLowerCase().includes(pencarian.toLowerCase())
   );
 
-  const renderCatCard = ({ item }: { item: Kucing }) => (
-    <Pressable 
-      onPress={() => router.push({ pathname: `/adopt/${item.id}`, params: { cat: JSON.stringify(item) } })}
-      style={styles.catCard}
-    >
-      {({ pressed }) => (
-        <>
-          <View style={styles.imageWrapper}>
-            {item.galeri.length > 0 ? (
-              <Image source={{ uri: item.galeri[0] }} style={styles.catImage} />
-            ) : (
-              <View style={styles.imagePlaceholder} />
-            )}
-            {/* Badge Gender dari si P */}
-            <View style={[
-              styles.genderBadge, 
-              { backgroundColor: item.jenisKelamin.toLowerCase() === 'jantan' ? '#E3F2FD' : '#FCE4EC' }
-            ]}>
-              <Text style={[
-                styles.genderText, 
-                { color: item.jenisKelamin.toLowerCase() === 'jantan' ? '#1976D2' : '#C2185B' }
+  const renderCatCard = ({ item }: { item: Kucing }) => {
+    // FIX: Ambil gender secara aman untuk logika warna
+    const genderSafe = (item.jenisKelamin || "").toLowerCase();
+    const isJantan = genderSafe === 'jantan';
+
+    return (
+      <Pressable 
+        onPress={() => router.push({ pathname: `/adopt/${item.id}`, params: { cat: JSON.stringify(item) } })}
+        style={styles.catCard}
+      >
+        {({ pressed }) => (
+          <>
+            <View style={styles.imageWrapper}>
+              {item.galeri.length > 0 ? (
+                <Image source={{ uri: item.galeri[0] }} style={styles.catImage} />
+              ) : (
+                <View style={styles.imagePlaceholder} />
+              )}
+              
+              {/* Badge Gender yang sudah aman dari NULL */}
+              <View style={[
+                styles.genderBadge, 
+                { backgroundColor: isJantan ? '#E3F2FD' : '#FCE4EC' }
               ]}>
-                {item.jenisKelamin}
-              </Text>
+                <Text style={[
+                  styles.genderText, 
+                  { color: isJantan ? '#1976D2' : '#C2185B' }
+                ]}>
+                  {item.jenisKelamin || "Misterius"}
+                </Text>
+              </View>
             </View>
-          </View>
 
-          <View style={styles.cardContent}>
-            <Text style={styles.catName} numberOfLines={1}>{item.nama}</Text>
-            <Text style={styles.locationText}>📍 {item.kota}</Text>
-            <View style={styles.chipContainer}>
-              <View style={styles.chip}><Text style={styles.chipText}>{item.umur} Bln</Text></View>
-              <View style={styles.chip}><Text style={styles.chipText}>{item.warnaBulu}</Text></View>
+            <View style={styles.cardContent}>
+              <Text style={styles.catName} numberOfLines={1}>{item.nama || "Tanpa Nama"}</Text>
+              <Text style={styles.locationText}>📍 {item.kota}</Text>
+              <View style={styles.chipContainer}>
+                <View style={styles.chip}><Text style={styles.chipText}>{item.umur || 0} Bln</Text></View>
+                <View style={styles.chip}><Text style={styles.chipText}>{item.warnaBulu || "-"}</Text></View>
+              </View>
+              <View style={[
+                styles.btnDetail, 
+                { 
+                  backgroundColor: pressed ? '#7c4f3a' : '#FFF0E0',
+                  transform: [{ scale: pressed ? 0.96 : 1 }] 
+                }
+              ]}>
+                <Text style={[styles.btnDetailText, { color: pressed ? 'white' : '#f7961d' }]}>
+                  Lihat Detail
+                </Text>
+              </View>
             </View>
-            {/* Button Detail yang Responsif */}
-            <View style={[
-              styles.btnDetail, 
-              { 
-                backgroundColor: pressed ? '#7c4f3a' : '#FFF0E0',
-                transform: [{ scale: pressed ? 0.96 : 1 }] 
-              }
-            ]}>
-              <Text style={[styles.btnDetailText, { color: pressed ? 'white' : '#f7961d' }]}>
-                Lihat Detail
-              </Text>
-            </View>
-          </View>
-        </>
-      )}
-    </Pressable>
-  );
+          </>
+        )}
+      </Pressable>
+    );
+  };
 
   return (
     <View style={styles.container}>
@@ -172,7 +177,6 @@ const AdoptKucing = () => {
         )}
       </View>
 
-      {/* FAB: Daftar Kucing Milikmu */}
       <TouchableOpacity 
         style={styles.fab}
         onPress={() => router.push('/form-ajuan')} 
