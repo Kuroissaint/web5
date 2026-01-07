@@ -14,6 +14,27 @@ const api = axios.create({
   },
 });
 
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    console.log("=== 🚨 AXIOS DEBUG ERROR 🚨 ===");
+    if (error.response) {
+      // Server merespon dengan status code selain 2xx
+      console.log("Status Code:", error.response.status);
+      console.log("Data Error dari Server:", error.response.data);
+      console.log("Header Server:", error.response.headers);
+    } else if (error.request) {
+      // Request terkirim tapi tidak ada respon (Masalah Jaringan/IP)
+      console.log("Request terkirim tapi tidak ada respon (Cek IP Laptop)");
+    } else {
+      console.log("Pesan Error:", error.message);
+    }
+    console.log("URL Terpanggil:", error.config?.url);
+    console.log("===============================");
+    return Promise.reject(error);
+  }
+);
+
 // 2. INTERCEPTOR: Otomatis memasukkan Token JWT dari AsyncStorage ke setiap request
 api.interceptors.request.use(
   async (config) => {
@@ -33,7 +54,11 @@ export const authAPI = {
   // UBAH INI: Hanya hapus data storage
   logout: async () => {
     await AsyncStorage.multiRemove(['token', 'user']);
-  }
+  },
+  updateProfile: (formData: FormData) => api.put('/auth/update-profile', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    transformRequest: (data) => data,
+  }),
 };
 
 // --- 2. DATA API ---

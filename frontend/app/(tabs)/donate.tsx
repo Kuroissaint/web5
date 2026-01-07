@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, FlatList, StyleSheet, Image, TouchableOpacity, ActivityIndicator, StatusBar } from 'react-native';
+import { View, Text, FlatList, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { donasiAPI, BASE_URL } from '../../services/api';
+import { donasiAPI } from '../../services/api';
 import { Ionicons } from '@expo/vector-icons';
 import { Colors } from '../../constants/Colors';
+import Navbar from '../../components/Navbar'; // 1. Import Navbar
 
 const DonateTab = () => {
   const [shelters, setShelters] = useState([]);
@@ -20,8 +22,19 @@ const DonateTab = () => {
       setShelters(res.data.data || []);
     } catch (err) {
       console.error("Gagal ambil shelter:", err);
-    } finally { setLoading(false); }
+    } finally { 
+      setLoading(false); 
+    }
   };
+
+  const renderHeader = () => (
+    <View style={styles.sectionHeader}>
+      <Text style={styles.sectionTitle}>Pilih Mitra Shelter 🐾</Text>
+      <Text style={styles.sectionSubtitle}>
+        Donasi kamu akan disalurkan langsung untuk biaya makan dan perawatan medis anabul.
+      </Text>
+    </View>
+  );
 
   const renderShelter = ({ item }: any) => (
     <TouchableOpacity 
@@ -40,68 +53,98 @@ const DonateTab = () => {
           {item.deskripsi_shelter || "Membantu kucing-kucing liar mendapatkan perawatan dan rumah baru."}
         </Text>
       </View>
-      <Ionicons name="chevron-forward" size={20} color="#ccc" />
+      <Ionicons name="chevron-forward" size={20} color={Colors.border} />
     </TouchableOpacity>
   );
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Text style={styles.title}>Donasi Shelter 🐾</Text>
-        <Text style={styles.subtitle}>Uluran tanganmu sangat berarti bagi mereka.</Text>
-      </View>
+    <View style={styles.mainContainer}>
+      {/* 2. Navbar Brand di paling atas */}
+      <Navbar />
 
-      {loading ? (
-        <ActivityIndicator size="large" color={Colors.primary} style={{ marginTop: 50 }} />
-      ) : (
-        <FlatList
-          data={shelters}
-          keyExtractor={(item: any) => item.id.toString()}
-          renderItem={renderShelter}
-          contentContainerStyle={styles.listContent}
-          ListEmptyComponent={
-            <Text style={styles.emptyText}>Belum ada shelter yang terdaftar.</Text>
-          }
-          onRefresh={fetchShelters}
-          refreshing={loading}
-        />
-      )}
+      <SafeAreaView style={styles.viewBg} edges={['bottom', 'left', 'right']}>
+        {/* 3. Header Banner Cokelat Meowment yang Konsisten */}
+        <View style={styles.headerBanner}>
+          <Text style={styles.headerTitle}>Donasi</Text>
+        </View>
+
+        {loading ? (
+          <View style={styles.centerWrapper}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
+        ) : (
+          <FlatList
+            data={shelters}
+            keyExtractor={(item: any) => item.id.toString()}
+            renderItem={renderShelter}
+            ListHeaderComponent={renderHeader}
+            contentContainerStyle={styles.listContent}
+            ListEmptyComponent={
+              <View style={styles.centerWrapper}>
+                <Text style={styles.emptyText}>Belum ada shelter yang terdaftar.</Text>
+              </View>
+            }
+            onRefresh={fetchShelters}
+            refreshing={loading}
+            showsVerticalScrollIndicator={false}
+          />
+        )}
+      </SafeAreaView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FDFBF9' },
-  header: { padding: 25, backgroundColor: '#fff', borderBottomLeftRadius: 30, borderBottomRightRadius: 30, elevation: 2 },
-  title: { fontSize: 24, fontWeight: 'bold', color: '#4d3a31' },
-  subtitle: { fontSize: 13, color: '#888', marginTop: 5 },
-  listContent: { padding: 20, paddingBottom: 100 },
+  mainContainer: { flex: 1, backgroundColor: Colors.white },
+  viewBg: { flex: 1, backgroundColor: '#FDFBF9' }, // Latar belakang cream lembut
+  
+  // Header Banner Signature Meowment
+  headerBanner: { 
+    padding: 24, 
+    paddingTop: 10, 
+    backgroundColor: Colors.primary, // Cokelat Meowment dari constants
+    borderBottomRightRadius: 30,
+    marginBottom: 5
+  },
+  headerTitle: { fontSize: 28, fontWeight: "800", color: Colors.white },
+
+  // Section Label
+  sectionHeader: { paddingHorizontal: 20, paddingTop: 20, marginBottom: 15 },
+  sectionTitle: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary },
+  sectionSubtitle: { fontSize: 13, color: Colors.textMuted, marginTop: 4, lineHeight: 18 },
+
+  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  
+  // Card Shelter
   shelterCard: { 
     flexDirection: 'row', 
     alignItems: 'center', 
-    padding: 15, 
+    padding: 16, 
     borderRadius: 20, 
-    backgroundColor: '#fff',
-    marginBottom: 15,
-    elevation: 3,
+    backgroundColor: Colors.white,
+    marginBottom: 16,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10
+    shadowOpacity: 0.08,
+    shadowRadius: 12,
+    borderWidth: 1,
+    borderColor: '#F0E6DE' // Border halus kecokelatan
   },
   imagePlaceholder: { 
-    width: 60, 
-    height: 60, 
-    borderRadius: 15, 
+    width: 65, 
+    height: 65, 
+    borderRadius: 18, 
     backgroundColor: '#FDF5F0', 
     justifyContent: 'center', 
     alignItems: 'center',
     marginRight: 15 
   },
   info: { flex: 1 },
-  shelterName: { fontSize: 17, fontWeight: 'bold', color: '#333' },
-  shelterDesc: { fontSize: 12, color: '#777', marginTop: 4, lineHeight: 18 },
-  emptyText: { textAlign: 'center', color: '#999', marginTop: 40 }
+  shelterName: { fontSize: 17, fontWeight: '800', color: Colors.textPrimary },
+  shelterDesc: { fontSize: 12, color: Colors.textSecondary, marginTop: 4, lineHeight: 18 },
+  
+  centerWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 },
+  emptyText: { textAlign: 'center', color: Colors.textMuted },
 });
 
 export default DonateTab;

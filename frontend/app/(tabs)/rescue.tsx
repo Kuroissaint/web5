@@ -1,21 +1,23 @@
 import React, { useEffect, useState } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  FlatList,
-  Image,
-  ActivityIndicator,
-  RefreshControl,
-  Alert
+import { 
+  View, 
+  Text, 
+  StyleSheet, 
+  TouchableOpacity, 
+  FlatList, 
+  Image, 
+  ActivityIndicator, 
+  RefreshControl 
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons"; 
-import { getRescue } from "../../services/api"; // Sesuaikan path ke api.ts kamu
-import DetailRescue from "../../components/DetailRescue"; // Pastikan file komponen ini sudah ada
+import { getRescue, getUserData } from "../../services/api"; 
+import DetailRescue from "../../components/DetailRescue"; 
+import Navbar from "../../components/Navbar";
+import { Colors } from "../../constants/Colors";
+import { Layout } from "../../constants/Layout";
 import { useFocusEffect } from '@react-navigation/native';
-import { getUserData } from "../../services/api";
 
 const RescuePage = () => {
   const router = useRouter();
@@ -30,48 +32,21 @@ const RescuePage = () => {
   const [selectedId, setSelectedId] = useState<number | null>(null);
   const [modalVisible, setModalVisible] = useState(false);
 
-  // Ambil Status User (untuk menentukan tombol daftar shelter)
   const fetchUserStatus = async () => {
-    console.log("=== DEBUG STATUS START ===");
     try {
-      // 1. Cek data user di storage
       const userData = await getUserData(); 
-      console.log("1. Data User di Storage:", userData);
-  
       if (userData && userData.id) {
-        const url = `http://192.168.1.3:3000/api/cek-status/${userData.id}`;
-        console.log("2. Memanggil URL:", url);
-  
-        // 2. Panggil API
-        const response = await fetch(url);
+        // PENTING: Sesuaikan IP_LAPTOP jika berubah di api.ts
+        const response = await fetch(`http://192.168.1.3:3000/api/cek-status/${userData.id}`);
         const result = await response.json();
-        console.log("3. Respon dari Server:", result);
-  
         if (result.success && result.data) {
-          console.log("4. Status ditemukan:", result.data.status);
-          setUserStatus(result.data.status); // Set ke state
-        } else {
-          console.log("4. Gagal: success false atau data kosong");
+          setUserStatus(result.data.status);
         }
-      } else {
-        console.log("2. Gagal: Tidak ada userData.id di storage (User belum login?)");
       }
     } catch (error: any) {
-      console.log("❌ ERROR KRITIS:", error.message);
+      console.log("❌ Gagal cek status:", error.message);
     }
-    console.log("=== DEBUG STATUS END ===");
   };
-  // Refresh data setiap kali user masuk ke tab ini
-  useFocusEffect(
-    React.useCallback(() => {
-      fetchAllReports();
-    }, [])
-  );
-
-  useEffect(() => {
-    fetchAllReports();
-    fetchUserStatus();
-  }, []);
 
   const fetchAllReports = async () => {
     try {
@@ -85,27 +60,28 @@ const RescuePage = () => {
     }
   };
 
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchAllReports();
+      fetchUserStatus();
+    }, [])
+  );
+
   const onRefresh = () => {
     setRefreshing(true);
     fetchAllReports();
   };
 
-  const handleInternalChat = (item: any) => {
-    // Menggunakan pengguna_id sesuai database kamu
-    const finalId = item.pengguna_id || `rescue_${item.id}`; 
-    const finalName = item.nama_pelapor || "Penyayang Kucing";
-
-    router.push({
-      pathname: "/chat/[id]", // Disesuaikan dengan struktur folder chat kamu
-      params: { 
-        userId: String(finalId), 
-        userName: String(finalName) 
-      }
-    });
-  };
+  const renderHeader = () => (
+    <View style={styles.sectionPadding}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Kucing Butuh Bantuan 🐱</Text>
+        <Text style={styles.sectionSubtitle}>Daftar laporan penyelamatan terbaru di sekitarmu.</Text>
+      </View>
+    </View>
+  );
 
   const renderItem = ({ item }: { item: any }) => {
-    // Penyesuaian IP localhost ke IP Lokal agar gambar muncul di HP
     const imageUri = item.url_gambar_utama
       ? item.url_gambar_utama.replace('localhost', '192.168.1.3')
       : "https://via.placeholder.com/300x200.png?text=No+Image";
@@ -113,24 +89,14 @@ const RescuePage = () => {
     return (
       <View style={styles.card}>
         <Image source={{ uri: imageUri }} style={styles.image} />
-
         <View style={styles.cardBody}>
           <View style={styles.infoRow}>
-            <Ionicons name="alert-circle-outline" size={18} color="#FF8C00" />
-            <Text style={styles.label}> Status:</Text>
-            <Text style={styles.infoValue}> {item.status_display || "Pending"}</Text>
+            <Ionicons name="alert-circle" size={16} color={Colors.primary} />
+            <Text style={styles.statusLabel}> {item.status_display || "Pending"}</Text>
           </View>
-
           <View style={styles.infoRow}>
-            <Ionicons name="location-outline" size={18} color="#FF8C00" />
-            <Text style={styles.label}> Lokasi: </Text>
-            <Text style={styles.infoValue}>{item.lokasi_penemuan || "-"}</Text>
-          </View>
-
-          <View style={styles.infoRow}>
-            <Ionicons name="pricetag-outline" size={18} color="#FF8C00" />
-            <Text style={styles.label}> Tag:</Text>
-            <Text style={styles.infoValue}> {item.tags || "General"}</Text>
+            <Ionicons name="location" size={16} color={Colors.primary} />
+            <Text style={styles.infoValue} numberOfLines={1}> {item.lokasi_penemuan || "-"}</Text>
           </View>
         </View>
 
@@ -146,9 +112,15 @@ const RescuePage = () => {
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.chatButton}
-            onPress={() => handleInternalChat(item)}
+            onPress={() => router.push({
+              pathname: "/chat/[id]",
+              params: { 
+                userId: String(item.pengguna_id || 0), 
+                userName: String(item.nama_pelapor || "Penyayang Kucing") 
+              }
+            })}
           >
-            <Ionicons name="chatbubble-ellipses-outline" size={24} color="#FF8C00" />
+            <Ionicons name="chatbubble-ellipses" size={22} color={Colors.primary} />
           </TouchableOpacity>
         </View>
       </View>
@@ -156,57 +128,67 @@ const RescuePage = () => {
   };
 
   return (
-    <View style={styles.container}>
-      {/* Tombol Navigasi Atas */}
-      <View style={styles.topButtons}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/form-rescue")}>
-          <Text style={styles.actionText}>Kirim Laporan</Text>
-        </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/my-report")}>
-          <Text style={styles.actionText}>Laporan Anda</Text>
+    <View style={styles.mainContainer}>
+      <Navbar /> 
+
+      {/* HEADER GAYA SEARCHSCREEN */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Rescue Center 🏥</Text>
+          <View style={{ flexDirection: 'row', gap: 8 }}>
+            <TouchableOpacity 
+              style={styles.btnCreate} 
+              onPress={() => router.push("/form-rescue")}
+            >
+              <Ionicons name="megaphone-outline" size={14} color={Colors.white} />
+              <Text style={styles.btnCreateText}>Lapor!</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity 
+              style={styles.btnMyReport} 
+              onPress={() => router.push("/my-report")}
+            >
+              <Text style={styles.btnMyReportText}>Laporan Saya</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* Tombol Status Shelter Terintegrasi */}
+        <TouchableOpacity 
+          style={[
+            styles.shelterStatusBtn, 
+            userStatus !== 'user' && { backgroundColor: Colors.success }
+          ]}
+          onPress={() => router.push(userStatus === 'user' ? "/form-shelter" : "/ShelterDashboard")}
+        >
+          <Ionicons 
+            name={userStatus === 'user' ? "business-outline" : "shield-checkmark"} 
+            size={18} 
+            color={Colors.white} 
+          />
+          <Text style={styles.shelterStatusText}>
+            {userStatus === 'user' ? "Daftar Mitra Shelter" : "Dashboard Shelter Aktif"}
+          </Text>
         </TouchableOpacity>
       </View>
 
-      {/* Tombol Shelter */}
-      <View style={styles.shelterArea}>
-        {userStatus === 'user' ? (
-          <TouchableOpacity 
-            style={styles.registerShelterBtn}
-            onPress={() => router.push("/form-shelter")}
-          >
-            <Ionicons name="business-outline" size={20} color="#fff" style={{marginRight: 8}} />
-            <Text style={styles.btnText}>Daftar Mitra Shelter</Text>
-          </TouchableOpacity>
+      <SafeAreaView style={styles.viewBg} edges={['bottom', 'left', 'right']}>
+        {loading ? (
+          <View style={styles.centerWrapper}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
         ) : (
-          <TouchableOpacity 
-            style={styles.manageShelterBtn}
-            onPress={() => router.push("/ShelterDashboard")}
-          >
-            <Ionicons name="shield-checkmark" size={20} color="#fff" style={{marginRight: 8}} />
-            <Text style={styles.btnText}>Dashboard Shelter</Text>
-          </TouchableOpacity>
+          <FlatList
+            data={allReports}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderItem}
+            ListHeaderComponent={renderHeader}
+            contentContainerStyle={styles.listContainer}
+            refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+            showsVerticalScrollIndicator={false}
+          />
         )}
-      </View>
-
-      <View style={styles.welcomeSection}>
-        <Text style={styles.welcomeTitle}>Update Kucing Rescue 🐱</Text>
-        <Text style={styles.welcomeSubtitle}>
-          Temukan kabar terbaru kucing yang butuh pertolongan segera.
-        </Text>
-      </View>
-
-      {loading ? (
-        <ActivityIndicator size="large" color="#FF8C00" style={{ marginTop: 50 }} />
-      ) : (
-        <FlatList
-          data={allReports}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-          contentContainerStyle={{ paddingBottom: 80 }}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+      </SafeAreaView>
 
       <DetailRescue
         rescueId={selectedId}
@@ -217,53 +199,107 @@ const RescuePage = () => {
   );
 };
 
-export default RescuePage;
-
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#FFF5E6", padding: 16 },
-  topButtons: { flexDirection: "row", gap: 10, marginBottom: 15 },
-  actionButton: {
-    flex: 1, backgroundColor: "#fff", padding: 15, borderRadius: 12, alignItems: "center", elevation: 2, borderWidth: 1, borderColor: '#FFE0B2'
-  },
-  actionText: { fontWeight: "bold", color: "#FF8C00" },
+  mainContainer: { flex: 1, backgroundColor: Colors.white },
+  viewBg: { flex: 1, backgroundColor: "#FAFAFA" },
   
-  shelterArea: { marginBottom: 15 },
-  registerShelterBtn: {
-    backgroundColor: '#FF8C00',
+  // Header Putih dengan Shadow (Gaya SearchScreen)
+  headerContainer: { 
+    paddingHorizontal: 16, 
+    paddingBottom: 16, 
+    backgroundColor: Colors.white, 
+    borderBottomLeftRadius: 20, 
+    borderBottomRightRadius: 20, 
+    ...Layout.shadow,
+    zIndex: 99,
+  },
+  headerRow: {
     flexDirection: 'row',
-    padding: 15,
-    borderRadius: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 16,
+  },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: Colors.primary },
+  
+  // Action Buttons di Header Row
+  btnCreate: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
+    elevation: 2,
+  },
+  btnCreateText: { color: Colors.white, fontWeight: '800', fontSize: 10 },
+  btnMyReport: {
+    backgroundColor: '#FEF0E6',
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+  },
+  btnMyReportText: { color: Colors.primary, fontWeight: '700', fontSize: 10 },
+
+  // Shelter Status Button
+  shelterStatusBtn: {
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    elevation: 3
-  },
-  manageShelterBtn: {
-    backgroundColor: '#4CAF50', 
-    flexDirection: 'row',
-    padding: 15,
+    backgroundColor: Colors.primary,
+    padding: 12,
     borderRadius: 12,
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 3
+    gap: 8,
   },
-  btnText: { color: '#fff', fontWeight: 'bold' },
+  shelterStatusText: { color: Colors.white, fontWeight: '800', fontSize: 12 },
 
-  welcomeSection: { marginBottom: 20, alignItems: 'center' },
-  welcomeTitle: { fontSize: 20, fontWeight: "bold", color: "#333", marginBottom: 6 },
-  welcomeSubtitle: { fontSize: 14, color: "#666", textAlign: 'center' },
+  // Content Styles
+  sectionPadding: { paddingHorizontal: 16, paddingTop: 20 },
+  sectionHeader: { marginBottom: 15 },
+  sectionTitle: { fontSize: 18, fontWeight: "800", color: Colors.textPrimary },
+  sectionSubtitle: { fontSize: 12, color: Colors.textMuted, marginTop: 2 },
 
-  card: { backgroundColor: "#fff", borderRadius: 15, padding: 12, marginBottom: 16, elevation: 4 },
-  image: { width: "100%", height: 180, borderRadius: 12, marginBottom: 12, backgroundColor: '#f0f0f0' },
-  cardBody: { marginBottom: 12, gap: 8 },
+  listContainer: { paddingBottom: 100 },
+  
+  // Card Style
+  card: { 
+    backgroundColor: Colors.white, 
+    borderRadius: 20, 
+    padding: 14, 
+    marginBottom: 16, 
+    marginHorizontal: 16, 
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#eee'
+  },
+  image: { width: "100%", height: 180, borderRadius: 15, marginBottom: 12, backgroundColor: '#f0f0f0' },
+  cardBody: { marginBottom: 12, gap: 6 },
   infoRow: { flexDirection: 'row', alignItems: 'center' },
-  label: { fontSize: 14, fontWeight: 'bold', color: '#555' },
-  infoValue: { fontSize: 14, color: "#444" },
+  statusLabel: { fontSize: 13, color: Colors.primary, fontWeight: '800' },
+  infoValue: { fontSize: 13, color: Colors.textSecondary, fontWeight: '500' },
 
   buttonGroup: { flexDirection: 'row', gap: 10 },
-  detailButton: { flex: 1, backgroundColor: "#FF8C00", padding: 12, borderRadius: 10, alignItems: "center" },
-  detailText: { color: "#fff", fontWeight: "bold" },
-  chatButton: { 
-    backgroundColor: "#FFF3E0", paddingHorizontal: 15, borderRadius: 10, 
-    justifyContent: "center", alignItems: "center", borderWidth: 1, borderColor: '#FFE0B2'
+  detailButton: { 
+    flex: 1, 
+    backgroundColor: Colors.primary, 
+    padding: 14, 
+    borderRadius: 12, 
+    alignItems: "center" 
   },
+  detailText: { color: Colors.white, fontWeight: "800", fontSize: 13 },
+  chatButton: { 
+    backgroundColor: '#FEF0E6', 
+    paddingHorizontal: 18, 
+    borderRadius: 12, 
+    justifyContent: "center", 
+    alignItems: "center", 
+    borderWidth: 1, 
+    borderColor: Colors.primary 
+  },
+  centerWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center' }
 });
+
+export default RescuePage;

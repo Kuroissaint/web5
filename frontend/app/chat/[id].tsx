@@ -14,14 +14,15 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { io } from 'socket.io-client';
-import { ChatService, IMAGE_URL } from '../../services/api';
+import { ChatService } from '../../services/api';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'; // Gunakan Insets
 
-// Sesuaikan dengan IP Laptop Anda
-const socket = io('http://192.168.1.3:3000');
+const socket = io('http://192.168.1.3:3000'); // Pastikan IP ini sesuai IP Laptop Anda
 
 const ChatDetail = () => {
-  const { id, name } = useLocalSearchParams(); // 'id' adalah id_percakapan
+  const { id, name } = useLocalSearchParams(); 
   const router = useRouter();
+  const insets = useSafeAreaInsets(); // Untuk menangani area bawah HP
   const [messages, setMessages] = useState<any[]>([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -30,18 +31,12 @@ const ChatDetail = () => {
 
   useEffect(() => {
     setupChat();
-
-    // Listener untuk pesan masuk real-time
     socket.on('receive_message', (newMessage) => {
-      // Hanya tambahkan jika pesan milik percakapan ini
       if (newMessage.id_percakapan == id) {
         setMessages((prev) => [...prev, newMessage]);
       }
     });
-
-    return () => {
-      socket.off('receive_message');
-    };
+    return () => { socket.off('receive_message'); };
   }, [id]);
 
   const setupChat = async () => {
@@ -50,15 +45,10 @@ const ChatDetail = () => {
       if (userData) {
         const user = JSON.parse(userData);
         setMyId(user.id);
-
-        // 1. Ambil riwayat pesan dari database
-        const response = await ChatService.getMessages(id as string);
-        setMessages(response.data);
-
-        // 2. Tandai pesan sebagai dibaca (Mark as Read)
+        const response: any = await ChatService.getMessages(id as string);
+        // Akses data: response.data.data sesuai format backend
+        setMessages(response.data.data || []); 
         await ChatService.markAsRead(id as string);
-
-        // 3. Bergabung ke room socket berdasarkan id_percakapan
         socket.emit('join_chat', id);
       }
     } catch (error) {
@@ -80,11 +70,14 @@ const ChatDetail = () => {
     };
 
     try {
-      // 1. Kirim via Socket agar lawan bicara langsung menerima
+      // 1. Kirim via Socket
       socket.emit('send_message', messageData);
 
       // 2. Simpan ke database via API
       await ChatService.saveMessage(messageData);
+
+      // 3. PENTING: Update state lokal agar pesan langsung muncul di layar Anda
+      setMessages((prev) => [...prev, messageData]);
 
       setInputText('');
     } catch (error) {
@@ -117,42 +110,45 @@ const ChatDetail = () => {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={90}
-    >
-      {/* Header Custom */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#313957" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>{name || 'Percakapan'}</Text>
-        <View style={{ width: 24 }} />
-      </View>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 20}
+      >
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#313957" />
+          </TouchableOpacity>
+          <Text style={styles.headerTitle}>{name || 'Percakapan'}</Text>
+          <View style={{ width: 24 }} />
+        </View>
 
-      <FlatList
-        ref={flatListRef}
-        data={messages}
-        keyExtractor={(item, index) => index.toString()}
-        renderItem={renderItem}
-        contentContainerStyle={styles.listContent}
-        onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-      />
-
-      <View style={styles.inputArea}>
-        <TextInput
-          style={styles.input}
-          placeholder="Ketik pesan..."
-          value={inputText}
-          onChangeText={setInputText}
-          multiline
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          keyExtractor={(_, index) => index.toString()}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
         />
-        <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
-          <Ionicons name="send" size={20} color="white" />
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+
+        {/* Area Input dengan padding bawah dinamis */}
+        <View style={[styles.inputArea, { paddingBottom: insets.bottom > 0 ? insets.bottom : 10 }]}>
+          <TextInput
+            style={styles.input}
+            placeholder="Ketik pesan..."
+            value={inputText}
+            onChangeText={setInputText}
+            multiline
+          />
+          <TouchableOpacity style={styles.sendButton} onPress={handleSend}>
+            <Ionicons name="send" size={20} color="white" />
+          </TouchableOpacity>
+        </View>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
@@ -170,7 +166,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     borderBottomWidth: 1,
     borderBottomColor: '#EEE',
-    marginTop: 40,
   },
   headerTitle: { fontSize: 16, fontWeight: 'bold', color: '#313957' },
   listContent: { padding: 15, paddingBottom: 20 },

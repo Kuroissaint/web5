@@ -33,6 +33,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="profile"
         options={{
+          href: null, // Nonaktifkan prefetching untuk tab profil
           title: 'Profile',
           tabBarIcon: ({ color }) => <Ionicons name="person" size={28} color={color} />,
         }}

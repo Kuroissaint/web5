@@ -6,7 +6,7 @@ class DonasiModel {
     // Ambil daftar user yang merupakan shelter
     async getShelters() {
         const [rows] = await this.db.execute(
-            "SELECT id, nama, email, deskripsi_shelter, qris_image FROM pengguna WHERE role = 'shelter'"
+            "SELECT id, username, email, deskripsi_shelter, qris_image FROM pengguna WHERE role = 'shelter'"
         );
         return rows;
     }
@@ -28,7 +28,7 @@ class DonasiModel {
     // History donasi untuk user (Donatur)
     async getByDonatur(userId) {
         const query = `
-            SELECT d.*, p.nama as nama_shelter 
+            SELECT d.*, p.username as nama_shelter 
             FROM donasi d
             JOIN pengguna p ON d.shelter_id = p.id
             WHERE d.donatur_id = ?
@@ -40,7 +40,7 @@ class DonasiModel {
     // Daftar donasi masuk untuk Shelter
     async getByShelter(shelterId) {
         const query = `
-            SELECT d.*, p.nama as nama_donatur 
+            SELECT d.*, p.username as nama_donatur 
             FROM donasi d
             JOIN pengguna p ON d.donatur_id = p.id
             WHERE d.shelter_id = ?

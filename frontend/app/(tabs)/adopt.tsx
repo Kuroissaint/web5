@@ -1,14 +1,15 @@
 import React, { useState, useCallback } from 'react';
 import { 
   View, Text, TextInput, FlatList, Image, TouchableOpacity, 
-  StyleSheet, ActivityIndicator, StatusBar, Pressable 
+  StyleSheet, ActivityIndicator, Pressable 
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
 import api, { BASE_URL } from '../../services/api';
 import { Colors } from '../../constants/Colors';
+import Navbar from '../../components/Navbar'; // 1. Import Navbar
 
-// Tipe data sesuai standar si P
 interface Kucing {
   id: number;
   nama: string;
@@ -26,7 +27,6 @@ const AdoptKucing = () => {
   const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
 
-  // 1. Logika Fetch dengan Mapping Foto yang lebih kuat
   const fetchKucingList = useCallback(async () => {
     setIsLoading(true);
     try {
@@ -37,14 +37,9 @@ const AdoptKucing = () => {
       const mappedData = actualData.map((k: any) => {
         const fotoString = k.url_gambar || "";
         const daftarFoto = fotoString.split(',').filter((f: string) => f.trim() !== "");
-
         const galeriLengkap = daftarFoto.map((namaFile: string) => {
           const file = namaFile.trim();
           if (file.startsWith('http')) return file;
-          if (file.startsWith('/uploads') || file.startsWith('uploads')) {
-            const cleanPath = file.startsWith('/') ? file : `/${file}`;
-            return `${BASE_URL}${cleanPath}`;
-          }
           return `${BASE_URL}/uploads/${file}`;
         });
 
@@ -59,7 +54,6 @@ const AdoptKucing = () => {
           galeri: galeriLengkap,
         };
       });
-
       setKucingList(mappedData);
     } catch (error: any) {
       console.error('Fetch Error Adopsi:', error.message);
@@ -68,21 +62,35 @@ const AdoptKucing = () => {
     }
   }, []);
 
-  // 2. Auto-refresh saat halaman mendapatkan fokus
   useFocusEffect(
     useCallback(() => {
       fetchKucingList(); 
     }, [fetchKucingList])
   );
 
-  // FIX: Tambahkan pengaman '?' agar tidak crash jika nama/kota NULL
   const filteredCats = kucingList.filter(kucing =>
     kucing.nama?.toLowerCase().includes(pencarian.toLowerCase()) ||
     kucing.kota?.toLowerCase().includes(pencarian.toLowerCase())
   );
 
+  const renderHeader = () => (
+    <View style={styles.contentPadding}>
+      <View style={styles.searchContainer}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Cari lokasi atau nama kucing..."
+          placeholderTextColor={Colors.textMuted}
+          value={pencarian}
+          onChangeText={setPencarian}
+        />
+      </View>
+      <View style={styles.titleRow}>
+        <Text style={styles.sectionTitle}>Kucing Siap Adopsi 🐱</Text>
+      </View>
+    </View>
+  );
+
   const renderCatCard = ({ item }: { item: Kucing }) => {
-    // FIX: Ambil gender secara aman untuk logika warna
     const genderSafe = (item.jenisKelamin || "").toLowerCase();
     const isJantan = genderSafe === 'jantan';
 
@@ -99,8 +107,6 @@ const AdoptKucing = () => {
               ) : (
                 <View style={styles.imagePlaceholder} />
               )}
-              
-              {/* Badge Gender yang sudah aman dari NULL */}
               <View style={[
                 styles.genderBadge, 
                 { backgroundColor: isJantan ? '#E3F2FD' : '#FCE4EC' }
@@ -124,11 +130,12 @@ const AdoptKucing = () => {
               <View style={[
                 styles.btnDetail, 
                 { 
-                  backgroundColor: pressed ? '#7c4f3a' : '#FFF0E0',
+                  backgroundColor: pressed ? Colors.primary : '#FDF5F0',
+                  borderColor: Colors.primary,
                   transform: [{ scale: pressed ? 0.96 : 1 }] 
                 }
               ]}>
-                <Text style={[styles.btnDetailText, { color: pressed ? 'white' : '#f7961d' }]}>
+                <Text style={[styles.btnDetailText, { color: pressed ? Colors.white : Colors.primary }]}>
                   Lihat Detail
                 </Text>
               </View>
@@ -140,28 +147,19 @@ const AdoptKucing = () => {
   };
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" />
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Temukan Sahabat Baru</Text>
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder="Cari lokasi atau nama kucing..."
-            placeholderTextColor="#999"
-            value={pencarian}
-            onChangeText={setPencarian}
-          />
-        </View>
-      </View>
+    <View style={styles.mainContainer}>
+      <Navbar /> 
 
-      <View style={styles.mainContent}>
-        <View style={styles.titleRow}>
-          <Text style={styles.sectionTitle}>Kucing Siap Adopsi</Text>
+      <SafeAreaView style={styles.viewBg} edges={['bottom', 'left', 'right']}>
+        {/* Banner Judul Konsisten */}
+        <View style={styles.headerBanner}>
+          <Text style={styles.headerTitle}>Adopsi Kucing</Text>
         </View>
 
         {isLoading ? (
-          <ActivityIndicator size="large" color="#f7961d" style={{ marginTop: 50 }} />
+          <View style={styles.centerWrapper}>
+            <ActivityIndicator size="large" color={Colors.primary} />
+          </View>
         ) : (
           <FlatList
             data={filteredCats}
@@ -169,14 +167,16 @@ const AdoptKucing = () => {
             keyExtractor={(item) => item.id.toString()}
             numColumns={2}
             columnWrapperStyle={styles.row}
+            ListHeaderComponent={renderHeader}
             showsVerticalScrollIndicator={false}
-            contentContainerStyle={{ paddingBottom: 100, paddingTop: 10 }}
+            contentContainerStyle={styles.listContainer}
             onRefresh={fetchKucingList}
             refreshing={isLoading}
           />
         )}
-      </View>
+      </SafeAreaView>
 
+      {/* FAB berwarna Cokelat */}
       <TouchableOpacity 
         style={styles.fab}
         onPress={() => router.push('/form-ajuan')} 
@@ -190,65 +190,81 @@ const AdoptKucing = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FB' },
-  header: { 
-    backgroundColor: '#f7c58f', 
-    paddingHorizontal: 25, 
-    paddingTop: 30, 
-    paddingBottom: 50,
-    borderBottomLeftRadius: 40,
-    borderBottomRightRadius: 40,
+  mainContainer: { flex: 1, backgroundColor: Colors.white },
+  viewBg: { flex: 1, backgroundColor: '#F8F9FB' },
+  
+  headerBanner: { 
+    padding: 24, 
+    paddingTop: 10, 
+    backgroundColor: Colors.primary, 
+    borderBottomRightRadius: 30,
+    marginBottom: 5
   },
-  headerTitle: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 20 },
+  headerTitle: { fontSize: 28, fontWeight: "800", color: Colors.white },
+  
+  contentPadding: { paddingHorizontal: 20, paddingTop: 20 },
   searchContainer: {
-    backgroundColor: 'white',
+    backgroundColor: Colors.white,
     borderRadius: 15,
     paddingHorizontal: 15,
-    elevation: 8,
+    elevation: 4,
     shadowColor: '#000',
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.05,
     shadowRadius: 10,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: Colors.border
   },
-  searchInput: { height: 55, fontSize: 16, color: '#333' },
-  mainContent: { flex: 1, paddingHorizontal: 20, marginTop: -25 },
-  titleRow: { marginBottom: 15 },
-  sectionTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  row: { justifyContent: 'space-between' },
+  searchInput: { height: 50, fontSize: 15, color: Colors.textPrimary },
+  
+  titleRow: { marginBottom: 10 },
+  sectionTitle: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
+  
+  listContainer: { paddingBottom: 100 },
+  row: { justifyContent: 'space-between', paddingHorizontal: 20 },
+  
   catCard: { 
-    backgroundColor: 'white', 
-    borderRadius: 25, 
+    backgroundColor: Colors.white, 
+    borderRadius: 20, 
     marginBottom: 20, 
     width: '48%', 
-    elevation: 4,
-    overflow: 'hidden'
+    elevation: 3,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: '#F0E6DE'
   },
-  imageWrapper: { width: '100%', height: 160, position: 'relative' },
+  imageWrapper: { width: '100%', height: 150, position: 'relative' },
   catImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   imagePlaceholder: { width: '100%', height: '100%', backgroundColor: '#F0F0F0' },
-  genderBadge: { position: 'absolute', top: 10, right: 10, paddingVertical: 5, paddingHorizontal: 10, borderRadius: 10 },
-  genderText: { fontSize: 10, fontWeight: 'bold' },
-  cardContent: { padding: 15, paddingTop: 10 },
-  catName: { fontSize: 17, fontWeight: 'bold', color: '#333', marginBottom: 2 },
-  locationText: { fontSize: 12, color: '#888', marginBottom: 10 },
-  chipContainer: { flexDirection: 'row', gap: 6, marginBottom: 15 },
-  chip: { backgroundColor: '#F5F5F5', paddingVertical: 5, paddingHorizontal: 10, borderRadius: 8 },
-  chipText: { fontSize: 10, color: '#666', fontWeight: 'bold' },
-  btnDetail: { paddingVertical: 10, borderRadius: 12, alignItems: 'center', borderWidth: 1, borderColor: '#f7961d20' },
-  btnDetailText: { fontWeight: 'bold', fontSize: 13 },
+  genderBadge: { position: 'absolute', top: 10, right: 10, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8 },
+  genderText: { fontSize: 9, fontWeight: 'bold' },
+  
+  cardContent: { padding: 12 },
+  catName: { fontSize: 16, fontWeight: '800', color: Colors.textPrimary, marginBottom: 2 },
+  locationText: { fontSize: 11, color: Colors.textMuted, marginBottom: 10 },
+  
+  chipContainer: { flexDirection: 'row', gap: 4, marginBottom: 12 },
+  chip: { backgroundColor: '#FDF5F0', paddingVertical: 4, paddingHorizontal: 8, borderRadius: 6 },
+  chipText: { fontSize: 9, color: Colors.primary, fontWeight: 'bold' },
+  
+  btnDetail: { paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
+  btnDetailText: { fontWeight: '800', fontSize: 12 },
+  
   fab: {
     position: 'absolute',
     bottom: 30,
     right: 20,
-    backgroundColor: '#f7961d',
+    backgroundColor: Colors.primary,
     flexDirection: 'row',
-    paddingVertical: 15,
-    paddingHorizontal: 22,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
     borderRadius: 30,
-    elevation: 10,
+    elevation: 8,
     alignItems: 'center',
   },
-  fabIcon: { color: 'white', fontSize: 20, marginRight: 8 },
-  fabText: { color: 'white', fontWeight: 'bold', fontSize: 14 }
+  fabIcon: { color: Colors.white, fontSize: 18, marginRight: 8 },
+  fabText: { color: Colors.white, fontWeight: 'bold', fontSize: 13 },
+  centerWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }
 });
 
 export default AdoptKucing;

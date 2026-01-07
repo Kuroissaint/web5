@@ -112,4 +112,49 @@ const register = async (request, reply) => {
     }
 };
 
+async updateProfile(request, reply) {
+    try {
+        const parts = request.body;
+        const userId = parts.id.value; // Pastikan kirim ID di FormData
+
+        const getValue = (field) => (field && field.value !== undefined ? field.value : field);
+
+        let fotoPath = getValue(parts.existing_foto); // Path lama jika tidak ganti foto
+
+        // Jika user upload foto baru
+        if (parts.foto && parts.foto.filename) {
+            const file = parts.foto;
+            const filename = `profile-${Date.now()}-${file.filename}`;
+            const uploadDir = path.join(__dirname, '../../uploads/profile');
+            const savePath = path.join(uploadDir, filename);
+
+            try { await fs.access(uploadDir); } catch { await fs.mkdir(uploadDir, { recursive: true }); }
+
+            const buffer = typeof file.toBuffer === 'function' ? await file.toBuffer() : file._buf;
+            await fs.writeFile(savePath, buffer);
+            fotoPath = `/uploads/profile/${filename}`;
+        }
+
+        const updateData = {
+            nama: getValue(parts.nama),
+            no_hp: getValue(parts.no_hp),
+            alamat: getValue(parts.alamat),
+            foto: fotoPath
+        };
+
+        await this.penggunaModel.update(userId, updateData);
+        
+        // Ambil data terbaru untuk dikirim balik ke frontend
+        const updatedUser = await this.penggunaModel.findById(userId);
+
+        return reply.send({ 
+            success: true, 
+            message: "Profil berhasil diperbarui", 
+            user: updatedUser 
+        });
+    } catch (error) {
+        return reply.status(500).send({ success: false, message: error.message });
+    }
+}
+
 module.exports = { login, register };

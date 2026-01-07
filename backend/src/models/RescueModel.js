@@ -9,83 +9,49 @@ class RescueModel {
   async searchRescue(filters = {}) {
     const { ids, status, pengguna_id } = filters;
 
+    // Gunakan subquery untuk Tags agar tidak perlu GROUP BY di query utama
     let query = `
     SELECT 
-        lr.id,
-        lr.nama_pelapor,
-        lr.telepon,
-        lr.waktu_penemuan,
-        lr.lokasi_penemuan,
-        lr.deskripsi,
-        lr.status, -- Status asli dari laporan_rescue
-        lr.created_at,
-        lr.pengguna_id,
-
-        -- ✅ Gunakan lr.status untuk sinkronisasi tracker di Frontend
-        lr.status AS status_display, 
+        lr.*, 
+        lr.status AS status_display,
         COALESCE(jk.nama_jenis, 'Tidak diketahui') AS ras_kucing,
-        
-        -- ✅ Aggregasi Tags
-        GROUP_CONCAT(DISTINCT t.nama_tag) AS tags,
-
-        -- Ambil Gambar Pertama
-        (SELECT url_gambar FROM gambar
-         WHERE entitas_id = lr.id AND jenis_entitas = 'laporan_rescue'
+        (SELECT GROUP_CONCAT(t.nama_tag) 
+         FROM tag_kucing tk 
+         JOIN tag t ON tk.tag_id = t.id 
+         WHERE tk.kucing_id = lr.kucing_id) AS tags,
+        (SELECT url_gambar FROM gambar 
+         WHERE entitas_id = lr.id AND jenis_entitas = 'laporan_rescue' 
          ORDER BY created_at ASC LIMIT 1) AS url_gambar_utama
-
     FROM laporan_rescue lr
     LEFT JOIN kucing k ON lr.kucing_id = k.id
     LEFT JOIN jenis_kucing jk ON k.jenis_kucing_id = jk.id
-    LEFT JOIN tag_kucing tk ON k.id = tk.kucing_id 
-    LEFT JOIN tag t ON tk.tag_id = t.id
-    
-    WHERE 1=1
-    `;
+    WHERE 1=1 `;
 
     const params = [];
-
-    // Filter berdasarkan list ID (jika ada)
     if (ids && Array.isArray(ids) && ids.length > 0) {
-      const placeholders = ids.map(() => '?').join(',');
-      query += ` AND lr.id IN (${placeholders})`;
+      query += ` AND lr.id IN (${ids.map(() => '?').join(',')})`;
       params.push(...ids);
     }
-
-    // ✅ FILTER BARU: Berdasarkan pengguna_id (Untuk halaman my-report)
-    if (pengguna_id) {
-      query += ` AND lr.pengguna_id = ?`;
-      params.push(pengguna_id);
+    if (pengguna_id) { 
+      query += ` AND lr.pengguna_id = ?`; 
+      params.push(pengguna_id); 
     }
-
-    // Filter status (jika ada)
-    if (status) {
-      query += ` AND lr.status = ?`;
-      params.push(status);
+    if (status) { 
+      query += ` AND lr.status = ?`; 
+      params.push(status); 
     }
     
-    query += ' GROUP BY lr.id ORDER BY lr.created_at DESC'; 
+    query += ' ORDER BY lr.created_at DESC'; 
 
-    try {
-      const [rows] = await this.db.execute(query, params); 
-
-      rows.forEach(r => {
-        // Formatting URL Gambar
-        r.gambar = r.url_gambar_utama 
-          ? (r.url_gambar_utama.startsWith('http') ? r.url_gambar_utama : `${process.env.BASE_URL}${r.url_gambar_utama}`)
-          : null;
-
-        // Memastikan status default jika data kosong
-        r.status_display = r.status_display || "dilaporkan";
-        r.tags = r.tags || "Umum";
-      });
-
-      return rows;
-    } catch (error) {
-      console.error("❌ SQL Error di searchRescue:", error);
-      throw error;
-    }
+    const [rows] = await this.db.execute(query, params); 
+    rows.forEach(r => {
+      // Pastikan IP laptop benar di .env atau ganti manual di sini
+      const baseUrl = process.env.BASE_URL || 'http://192.168.1.3:3000';
+      r.gambar = r.url_gambar_utama ? `${baseUrl}${r.url_gambar_utama}` : null;
+      r.tags = r.tags || "Umum";
+    });
+    return rows;
   }
-
   // =================================================================
   // 2. GET BY ID (FIX STATUS DISPLAY)
   // =================================================================
