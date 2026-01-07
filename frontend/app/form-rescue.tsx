@@ -1,15 +1,15 @@
+// app/form-rescue.tsx
+
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet, ScrollView,
-  Modal, Image, Alert, ImageBackground, Platform, FlatList
+  Modal, Image, Alert, Platform, FlatList
 } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import axios from 'axios';
-import { getUserData } from '../services/api';
-
-const API_URL = 'http://192.168.1.3:3000/api'; // Ganti dengan IP kamu
+import { Ionicons } from '@expo/vector-icons'; // Tambahkan icon
+import api, { getUserData, BASE_URL } from '../services/api'; // Gunakan API terpusat
 
 const FormRescue = () => {
   const router = useRouter();
@@ -35,9 +35,9 @@ const FormRescue = () => {
 
   const fetchTags = async () => {
     try {
-      const res = await axios.get(`${API_URL}/tags`);
+      const res = await api.get('/tags'); // Gunakan rute yang benar
       setTags(res.data?.data || []);
-    } catch (err) { console.error(err); }
+    } catch (err) { console.error("Gagal ambil tags:", err); }
   };
 
   useEffect(() => { fetchTags(); }, []);
@@ -60,19 +60,10 @@ const FormRescue = () => {
       }
     }
   };
-  
-  const checkAuth = async () => {
-    const userData = await getUserData();
-    if (!userData) {
-      Alert.alert("Wajib Login", "Silakan login untuk mengakses fitur ini.");
-      router.replace('/login');
-    }
-  };
-  checkAuth();
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsEditing: true,
       quality: 0.7,
     });
@@ -85,7 +76,7 @@ const FormRescue = () => {
         Alert.alert("Akses Ditolak", "Kamu harus login terlebih dahulu.");
         router.replace('/login');
         return;
-      }
+    }
     if (!form.nama || !form.telepon || !form.tag_id || !form.lokasi) {
       Alert.alert("Peringatan", "Mohon isi semua data wajib!");
       return;
@@ -100,24 +91,28 @@ const FormRescue = () => {
       formData.append('tag_id', form.tag_id);
       formData.append('waktu_penemuan', form.waktu);
       formData.append("pengguna_id", String(userData.id)); 
+      formData.append("kategori", "rescue"); // Tambahkan kategori sesuai diskusi sebelumnya
 
       if (image) {
+        const fileName = image.uri.split('/').pop();
+        const match = /\.(\w+)$/.exec(fileName || '');
+        const type = match ? `image/${match[1]}` : `image/jpeg`;
+        
+        // @ts-ignore
         formData.append('gambar', {
-          uri: Platform.OS === 'android' ? image.uri : image.uri.replace('file://', ''),
-          name: 'rescue.jpg',
-          type: 'image/jpeg',
-        } as any);
+          uri: image.uri,
+          name: fileName || 'rescue.jpg',
+          type: type,
+        });
       }
 
-      await axios.post(`${API_URL}/rescue`, formData, {
+      await api.post('/rescue', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
+        transformRequest: (data) => data,
       });
 
-      setShowPopup(true);
-      setTimeout(() => {
-        setShowPopup(false);
-        router.replace('/rescue'); // Kembali ke tab rescue
-      }, 1500);
+      Alert.alert("Berhasil", "Laporan rescue berhasil dikirim!");
+      router.replace('/(tabs)/rescue');
     } catch (err) {
       Alert.alert('Gagal', 'Terjadi kesalahan saat mengirim laporan.');
     }
@@ -128,8 +123,29 @@ const FormRescue = () => {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <Text style={styles.title}>Lapor Rescue 🐾</Text>
         
+        {/* INPUT GAMBAR (TAMBAHAN) */}
+        <Text style={styles.label}>Foto Kucing/Kejadian</Text>
+        <TouchableOpacity style={styles.imagePicker} onPress={pickImage}>
+          {image ? (
+            <Image source={{ uri: image.uri }} style={styles.previewImage} />
+          ) : (
+            <View style={styles.placeholder}>
+              <Ionicons name="camera-outline" size={40} color="#999" />
+              <Text style={{color: '#999'}}>Pilih Foto</Text>
+            </View>
+          )}
+        </TouchableOpacity>
+
         <Text style={styles.label}>Nama Pelapor</Text>
         <TextInput style={styles.input} value={form.nama} onChangeText={(v) => setForm({ ...form, nama: v })} />
+
+        <Text style={styles.label}>Nomor WhatsApp</Text>
+        <TextInput style={styles.input} keyboardType="phone-pad" value={form.telepon} onChangeText={(v) => setForm({ ...form, telepon: v })} />
+
+        <Text style={styles.label}>Waktu Penemuan</Text>
+        <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>
+          <Text>{waktuDisplay || "Pilih waktu..."}</Text>
+        </TouchableOpacity>
 
         <Text style={styles.label}>Lokasi Penemuan</Text>
         <TextInput style={styles.input} value={form.lokasi} onChangeText={(v) => setForm({ ...form, lokasi: v })} />
@@ -139,13 +155,47 @@ const FormRescue = () => {
           <Text>{form.tag_nama || "Pilih kategori..."}</Text>
         </TouchableOpacity>
 
+        <Text style={styles.label}>Deskripsi Kejadian</Text>
+        <TextInput 
+          style={[styles.input, {height: 100, textAlignVertical: 'top'}]} 
+          multiline 
+          value={form.deskripsi} 
+          onChangeText={(v) => setForm({ ...form, deskripsi: v })} 
+        />
+
         <TouchableOpacity style={styles.btnSubmit} onPress={submitLaporan}>
           <Text style={styles.btnText}>Kirim Laporan</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* Modal Tag & DateTimePicker (Sesuai kode Pau sebelumnya) */}
-      {showPicker && <DateTimePicker value={date} mode={pickerMode} onChange={onDateChange} />}
+      {/* MODAL PILIH TAG */}
+      <Modal visible={showTagModal} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Pilih Kategori</Text>
+            <FlatList
+              data={tags}
+              keyExtractor={(item) => item.id.toString()}
+              renderItem={({ item }) => (
+                <TouchableOpacity 
+                  style={styles.tagItem} 
+                  onPress={() => {
+                    setForm({ ...form, tag_id: item.id, tag_nama: item.nama_tag });
+                    setShowTagModal(false);
+                  }}
+                >
+                  <Text>{item.nama_tag}</Text>
+                </TouchableOpacity>
+              )}
+            />
+            <TouchableOpacity onPress={() => setShowTagModal(false)} style={styles.btnClose}>
+              <Text style={{color: '#fff'}}>Tutup</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {showPicker && <DateTimePicker value={date} mode={pickerMode} is24Hour={true} onChange={onDateChange} />}
     </View>
   );
 };
@@ -153,12 +203,35 @@ const FormRescue = () => {
 export default FormRescue;
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FFF5E6' },
-  scrollContainer: { padding: 20 },
+  container: { flex: 1, backgroundColor: '#FDFBF9' },
+  scrollContainer: { padding: 20, paddingBottom: 50 },
   title: { fontSize: 22, fontWeight: 'bold', color: '#FF8C00', textAlign: 'center', marginBottom: 20 },
-  label: { fontWeight: 'bold', color: '#333', marginBottom: 5, marginTop: 10 },
-  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 10 },
-  dropdown: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#ddd', borderRadius: 8, padding: 12 },
-  btnSubmit: { backgroundColor: '#FF8C00', padding: 15, borderRadius: 10, marginTop: 30, alignItems: 'center' },
-  btnText: { color: '#fff', fontWeight: 'bold' }
+  label: { fontWeight: 'bold', color: '#555', marginBottom: 8, marginTop: 15 },
+  input: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 14, fontSize: 15 },
+  dropdown: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#eee', borderRadius: 12, padding: 14 },
+  
+  // Style Image Picker
+  imagePicker: { 
+    height: 180, 
+    backgroundColor: '#fff', 
+    borderRadius: 15, 
+    borderWidth: 1, 
+    borderColor: '#eee', 
+    borderStyle: 'dashed',
+    justifyContent: 'center', 
+    alignItems: 'center',
+    overflow: 'hidden'
+  },
+  previewImage: { width: '100%', height: '100%', resizeMode: 'cover' },
+  placeholder: { alignItems: 'center' },
+  
+  btnSubmit: { backgroundColor: '#FF8C00', padding: 18, borderRadius: 15, marginTop: 30, alignItems: 'center' },
+  btnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+
+  // Modal Styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', padding: 20 },
+  modalContent: { backgroundColor: '#fff', borderRadius: 20, padding: 20, maxHeight: '80%' },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  tagItem: { padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee' },
+  btnClose: { backgroundColor: '#FF8C00', padding: 12, borderRadius: 10, marginTop: 15, alignItems: 'center' }
 });

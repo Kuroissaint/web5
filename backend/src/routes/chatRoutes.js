@@ -34,47 +34,51 @@ async function chatRoutes(fastify, options) {
     fastify.post('/send', async (request, reply) => {
         const { pengirim_id, penerima_id, pesan } = request.body;
         let { id_percakapan } = request.body;
-    
+
         try {
-        // 1. Jika id_percakapan tidak dikirim (chat baru), cari apakah mereka sudah punya percakapan
-        if (!id_percakapan || id_percakapan === "null" || id_percakapan === 0) {
-            const [existing] = await db.query(
-            `SELECT id_percakapan FROM percakapan 
-            WHERE (id_user_1 = ? AND id_user_2 = ?) 
-            OR (id_user_1 = ? AND id_user_2 = ?)`,
-            [pengirim_id, penerima_id, penerima_id, pengirim_id]
-            );
-    
-            if (existing.length > 0) {
-            id_percakapan = existing[0].id_percakapan;
-            } else {
-            // 2. Jika benar-benar baru, buat baris percakapan baru
-            const [newConv] = await db.query(
-                "INSERT INTO percakapan (id_user_1, id_user_2) VALUES (?, ?)",
-                [pengirim_id, penerima_id]
-            );
-            id_percakapan = newConv.insertId;
+            // --- LOGIKA VALIDASI BARU ---
+            let isConversationValid = false;
+            if (id_percakapan && id_percakapan !== "null" && id_percakapan !== 0) {
+                // Cek apakah ID ini benar-benar ada di tabel percakapan
+                const [check] = await db.query("SELECT id_percakapan FROM percakapan WHERE id_percakapan = ?", [id_percakapan]);
+                if (check.length > 0) isConversationValid = true;
             }
-        }
-    
-        // 3. Simpan pesan ke tabel pesan menggunakan id_percakapan yang valid
-        const [result] = await db.query(
-            "INSERT INTO pesan (id_percakapan, pengirim_id, pesan, is_read) VALUES (?, ?, ?, 0)",
-            [id_percakapan, pengirim_id, pesan]
-        );
-    
-        return { 
-            success: true, 
-            id_pesan: result.insertId, 
-            id_percakapan: id_percakapan // Kembalikan ID ini agar frontend bisa menyimpannya
-        };
+
+            // Jika ID tidak valid atau tidak dikirim, cari berdasarkan pengirim & penerima
+            if (!isConversationValid) {
+                const [existing] = await db.query(
+                    `SELECT id_percakapan FROM percakapan 
+                    WHERE (id_user_1 = ? AND id_user_2 = ?) 
+                    OR (id_user_1 = ? AND id_user_2 = ?)`,
+                    [pengirim_id, penerima_id, penerima_id, pengirim_id]
+                );
+
+                if (existing.length > 0) {
+                    id_percakapan = existing[0].id_percakapan;
+                } else {
+                    // Buat percakapan baru jika benar-benar belum pernah chat
+                    const [newConv] = await db.query(
+                        "INSERT INTO percakapan (id_user_1, id_user_2) VALUES (?, ?)",
+                        [pengirim_id, penerima_id]
+                    );
+                    id_percakapan = newConv.insertId;
+                }
+            }
+
+            // Simpan pesan menggunakan ID yang sudah divalidasi/dibuat
+            const [result] = await db.query(
+                "INSERT INTO pesan (id_percakapan, pengirim_id, pesan, is_read) VALUES (?, ?, ?, 0)",
+                [id_percakapan, pengirim_id, pesan]
+            );
+
+            return { 
+                success: true, 
+                id_pesan: result.insertId, 
+                id_percakapan: id_percakapan 
+            };
         } catch (error) {
-        console.error("❌ Database Error Chat:", error.message);
-        return reply.status(500).send({ 
-            success: false, 
-            message: "Database error", 
-            error: error.message 
-        });
+            console.error("❌ Database Error Chat:", error.message);
+            return reply.status(500).send({ success: false, error: error.message });
         }
     });
   

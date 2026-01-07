@@ -1,11 +1,16 @@
 const AuthController = require('../controllers/AuthController');
 
 async function authRoutes(fastify, options) {
-    const authController = new AuthController(fastify.db); // Inisialisasi Class
+    const authController = new AuthController(fastify.db);
 
     fastify.post('/login', (req, res) => authController.login(req, res));
     fastify.post('/register', (req, res) => authController.register(req, res));
-    fastify.put('/update-profile', (req, res) => authController.updateProfile(req, res)); // Tambahkan rute ini
+    
+    // TAMBAHKAN PROTEKSI AUTHENTICATE DI SINI
+    fastify.put('/update-profile', 
+        { preHandler: [fastify.authenticate] }, 
+        (req, res) => authController.updateProfile(req, res)
+    );
 }
 
 module.exports = authRoutes;

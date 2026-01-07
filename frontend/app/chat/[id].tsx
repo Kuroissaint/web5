@@ -75,41 +75,33 @@ const ChatDetail = () => {
     if (inputText.trim() === '' || !myId) return;
 
     const messageData = {
-      id_percakapan: idPercakapan, // null jika chat pertama
-      pengirim_id: myId,
-      penerima_id: id,            // ID lawan bicara
-      pesan: inputText,
-      waktu: new Date().toISOString()
-    };
+        id_percakapan: id, // ID dari URL (Bisa ID Ruangan atau ID User)
+        pengirim_id: myId,
+        penerima_id: id,   // TAMBAHKAN INI: ID Penerima (diambil dari URL id)
+        pesan: inputText,
+        waktu: new Date().toISOString()
+      };
 
-    try {
-      // Simpan ke DB (Backend akan otomatis create percakapan jika belum ada)
-      const res = await ChatService.saveMessage(messageData);
-
-      if (res.data.success) {
-        const newIdPercakapan = res.data.id_percakapan || idPercakapan;
-
-        // Jika baru dibuat, join socket room-nya
-        if (!idPercakapan) {
-          setIdPercakapan(newIdPercakapan);
-          socket.emit('join_chat', newIdPercakapan);
+      try {
+        // 1. Simpan ke database via API
+        const res = await ChatService.saveMessage(messageData);
+  
+        if (res.data.success) {
+          // Kirim via Socket menggunakan ID Percakapan asli dari server
+          socket.emit('send_message', {
+            ...messageData,
+            id_percakapan: res.data.id_percakapan // Pakai ID asli dari database
+          });
+  
+          // Update state lokal
+          setMessages((prev) => [...prev, { ...messageData, pengirim_id: myId }]);
+          setInputText('');
         }
-
-        // Kirim via Socket
-        socket.emit('send_message', {
-          ...messageData,
-          id_percakapan: newIdPercakapan
-        });
-
-        // Update UI Lokal
-        setMessages((prev) => [...prev, { ...messageData, pengirim_id: myId }]);
-        setInputText('');
+      } catch (error) {
+        console.error('Gagal mengirim pesan:', error);
+        Alert.alert("Gagal", "Pesan tidak terkirim.");
       }
-    } catch (error) {
-      console.error('Gagal kirim pesan:', error);
-      Alert.alert("Gagal", "Pesan tidak terkirim. Pastikan backend sudah diupdate.");
-    }
-  };
+};
 
   const renderItem = ({ item }: { item: any }) => {
     const isMine = item.pengirim_id === myId;

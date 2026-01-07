@@ -68,39 +68,52 @@ class AuthController {
     async updateProfile(request, reply) {
         try {
             const parts = request.body;
+            // Helper untuk mengambil value dari field multipart
             const getValue = (field) => (field && field.value !== undefined ? field.value : field);
-            const userId = getValue(parts.id);
-
-            let fotoPath = getValue(parts.existing_foto);
-
+            
+            // GUNAKAN ID DARI TOKEN (request.user.id) agar user tidak bisa edit profil orang lain lewat ID
+            const userId = request.user.id; 
+    
+            let fotoPath = getValue(parts.existing_foto) || null;
+    
             if (parts.foto && parts.foto.filename) {
                 const file = parts.foto;
                 const filename = `profile-${Date.now()}-${file.filename}`;
                 const uploadDir = path.join(__dirname, '../../uploads/profile');
                 const savePath = path.join(uploadDir, filename);
-
+    
                 try { await fs.access(uploadDir); } catch { await fs.mkdir(uploadDir, { recursive: true }); }
-
+    
                 const buffer = typeof file.toBuffer === 'function' ? await file.toBuffer() : file._buf;
                 await fs.writeFile(savePath, buffer);
                 fotoPath = `/uploads/profile/${filename}`;
             }
-
+    
             const query = `UPDATE pengguna SET nama = ?, no_hp = ?, alamat = ?, foto_profil = ? WHERE id = ?`;
+            
+            // FIX: Tambahkan || null di setiap parameter agar tidak undefined
             await this.db.execute(query, [
-                getValue(parts.nama),
-                getValue(parts.no_hp),
-                getValue(parts.alamat),
+                getValue(parts.nama) || null,
+                getValue(parts.no_hp) || null,
+                getValue(parts.alamat) || null,
                 fotoPath,
                 userId
             ]);
-
-            const [updated] = await this.db.query('SELECT id, username, nama, email, foto_profil as foto, no_hp, alamat FROM pengguna WHERE id = ?', [userId]);
-            return reply.send({ success: true, message: "Profil berhasil diperbarui", user: updated[0] });
+    
+            const [updated] = await this.db.query(
+                'SELECT id, username, nama, email, foto_profil, no_hp, alamat FROM pengguna WHERE id = ?', 
+                [userId]
+            );
+            
+            return reply.send({ 
+                success: true, 
+                message: "Profil berhasil diperbarui", 
+                user: updated[0] 
+            });
         } catch (error) {
+            request.log.error(error);
             return reply.status(500).send({ success: false, message: error.message });
         }
     }
 }
-
 module.exports = AuthController;
