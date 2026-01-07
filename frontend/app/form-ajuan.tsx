@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, ScrollView, StyleSheet,
   Alert, ActivityIndicator, Image, KeyboardAvoidingView, Platform
@@ -28,6 +28,18 @@ const initialState = {
 
 const FormAjuan = () => {
   const router = useRouter();
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const user = await getUserData();
+      if (!user) {
+        Alert.alert("Wajib Login", "Silakan login terlebih dahulu untuk mengajukan kucing.");
+        router.replace('/login');
+      }
+    };
+    checkLogin();
+  }, []);
+
   const [currentStep, setCurrentStep] = useState(0);
   const [form, setForm] = useState(initialState);
   const [isSubmitting, setIsSubmitting] = useState(false);

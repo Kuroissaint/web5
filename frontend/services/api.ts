@@ -67,10 +67,20 @@ export const kucingAPI = {
 };
 
 // --- 4. DONASI API ---
+// frontend/services/api.ts
+
 export const donasiAPI = {
-  create: (data: any) => api.post('/donasi', data),
-  getStats: () => api.get('/donasi/stats'), 
-  getById: (id: string | number) => api.get(`/donasi/${id}`),
+  // Ambil daftar user yang memiliki role 'shelter'
+  getShelters: () => api.get('/donasi/shelters'),
+  
+  // Kirim formulir donasi beserta file bukti transfer
+  submitDonasi: (formData: FormData) => api.post('/donasi/submit', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+    transformRequest: (data) => data, // Menjaga format FormData agar tidak rusak
+  }),
+  
+  // Ambil history donasi milik user yang sedang login
+  getHistory: (userId: number | string) => api.get(`/donasi/history/${userId}`),
 };
 
 // --- 5. PEMBAYARAN API ---

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View, Text, StyleSheet, TextInput, TouchableOpacity, 
   ScrollView, Image, Alert, ActivityIndicator, KeyboardAvoidingView, Platform
@@ -11,6 +11,18 @@ import { getUserData } from '../services/api';
 
 const FormShelter = () => {
   const router = useRouter();
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const user = await getUserData();
+      if (!user) {
+        Alert.alert("Wajib Login", "Silakan login terlebih dahulu untuk mengajukan kucing.");
+        router.replace('/login');
+      }
+    };
+    checkLogin();
+  }, []);
+
   const [loading, setLoading] = useState(false);
   const [image, setImage] = useState<string | null>(null);
 

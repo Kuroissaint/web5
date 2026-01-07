@@ -1,4 +1,4 @@
-const shelterModel = require('../models/shelterModel');
+const shelterModel = require('../models/ShelterModel');
 const path = require('path');
 const fs = require('fs');
 const util = require('util');

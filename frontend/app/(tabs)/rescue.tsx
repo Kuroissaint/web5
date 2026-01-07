@@ -15,6 +15,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { getRescue } from "../../services/api"; // Sesuaikan path ke api.ts kamu
 import DetailRescue from "../../components/DetailRescue"; // Pastikan file komponen ini sudah ada
 import { useFocusEffect } from '@react-navigation/native';
+import { getUserData } from "../../services/api";
 
 const RescuePage = () => {
   const router = useRouter();
@@ -31,19 +32,35 @@ const RescuePage = () => {
 
   // Ambil Status User (untuk menentukan tombol daftar shelter)
   const fetchUserStatus = async () => {
+    console.log("=== DEBUG STATUS START ===");
     try {
-      // Endpoint ini harus ada di backend kamu untuk cek role/status user
-      const response = await fetch("http://192.168.1.3:3000/api/cek-status/1"); 
-      const result = await response.json();
-
-      if (result.success && result.data) {
-        setUserStatus(result.data.status); 
+      // 1. Cek data user di storage
+      const userData = await getUserData(); 
+      console.log("1. Data User di Storage:", userData);
+  
+      if (userData && userData.id) {
+        const url = `http://192.168.1.3:3000/api/cek-status/${userData.id}`;
+        console.log("2. Memanggil URL:", url);
+  
+        // 2. Panggil API
+        const response = await fetch(url);
+        const result = await response.json();
+        console.log("3. Respon dari Server:", result);
+  
+        if (result.success && result.data) {
+          console.log("4. Status ditemukan:", result.data.status);
+          setUserStatus(result.data.status); // Set ke state
+        } else {
+          console.log("4. Gagal: success false atau data kosong");
+        }
+      } else {
+        console.log("2. Gagal: Tidak ada userData.id di storage (User belum login?)");
       }
-    } catch (error) {
-      console.log("Gagal ambil status user:", error);
+    } catch (error: any) {
+      console.log("❌ ERROR KRITIS:", error.message);
     }
+    console.log("=== DEBUG STATUS END ===");
   };
-
   // Refresh data setiap kali user masuk ke tab ini
   useFocusEffect(
     React.useCallback(() => {
@@ -90,7 +107,7 @@ const RescuePage = () => {
   const renderItem = ({ item }: { item: any }) => {
     // Penyesuaian IP localhost ke IP Lokal agar gambar muncul di HP
     const imageUri = item.url_gambar_utama
-      ? item.url_gambar_utama.replace('localhost', '192.168.100.16')
+      ? item.url_gambar_utama.replace('localhost', '192.168.1.3')
       : "https://via.placeholder.com/300x200.png?text=No+Image";
 
     return (
@@ -142,10 +159,10 @@ const RescuePage = () => {
     <View style={styles.container}>
       {/* Tombol Navigasi Atas */}
       <View style={styles.topButtons}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/form-recue")}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/form-rescue")}>
           <Text style={styles.actionText}>Kirim Laporan</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/MyReportspage")}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/my-report")}>
           <Text style={styles.actionText}>Laporan Anda</Text>
         </TouchableOpacity>
       </View>

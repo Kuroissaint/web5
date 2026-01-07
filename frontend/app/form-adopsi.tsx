@@ -11,6 +11,18 @@ import { getUserData } from '../services/api';
 
 const FormAdopsi = () => {
   const router = useRouter();
+
+  useEffect(() => {
+    const checkLogin = async () => {
+      const user = await getUserData();
+      if (!user) {
+        Alert.alert("Wajib Login", "Silakan login terlebih dahulu untuk mengajukan kucing.");
+        router.replace('/login');
+      }
+    };
+    checkLogin();
+  }, []);
+  
   const params = useLocalSearchParams();
   const cat = typeof params.cat === 'string' ? JSON.parse(params.cat) : params.cat;
 
