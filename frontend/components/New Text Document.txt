@@ -1,0 +1,99 @@
+import React from 'react';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+
+const Footer = () => {
+  return (
+    <View style={styles.footer}>
+      {/* Wave Effect (Disederhanakan untuk Mobile) */}
+      <View style={styles.wavePlaceholder} />
+
+      <View style={styles.content}>
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About Us</Text>
+          <Text style={styles.sectionText}>
+            Meowment adalah wadah bagi pecinta kucing dan relawan untuk membantu kucing terlantar bersama-sama.
+          </Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Follow Us</Text>
+          <View style={styles.socialRow}>
+            <Text style={styles.socialItem}>📸 @meowment</Text>
+            <Text style={styles.socialItem}>❌ @meowment</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Contact Us</Text>
+          <Text style={styles.sectionText}>📞 0858-8088-3095</Text>
+        </View>
+      </View>
+
+      <View style={styles.footerBottom}>
+        <Text style={styles.bottomText}>
+          © 2026 <Text style={{fontWeight: 'bold'}}>Meowment</Text>. All rights reserved.
+        </Text>
+      </View>
+    </View>
+  );
+};
+
+const styles = StyleSheet.create({
+  footer: {
+    backgroundColor: '#3D2B24',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    marginTop: 30,
+    paddingTop: 20,
+  },
+  wavePlaceholder: {
+    height: 5,
+    backgroundColor: '#9E7363',
+    width: '40%',
+    alignSelf: 'center',
+    borderRadius: 10,
+    marginBottom: 20,
+  },
+  content: {
+    paddingHorizontal: 25,
+    gap: 20,
+  },
+  section: {
+    marginBottom: 10,
+  },
+  sectionTitle: {
+    color: '#F9D6B0',
+    fontSize: 16,
+    fontWeight: '700',
+    marginBottom: 8,
+  },
+  sectionText: {
+    color: '#FFF',
+    lineHeight: 20,
+    fontSize: 13,
+    opacity: 0.9,
+  },
+  socialRow: {
+    flexDirection: 'column',
+    gap: 5,
+  },
+  socialItem: {
+    color: '#FFF4E4',
+    fontSize: 14,
+  },
+  footerBottom: {
+    marginTop: 30,
+    paddingVertical: 15,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(255,255,255,0.1)',
+    alignItems: 'center',
+    backgroundColor: 'rgba(0,0,0,0.1)',
+  },
+  bottomText: {
+    color: '#FFF',
+    fontSize: 12,
+    opacity: 0.7,
+  }
+});
+
+export default Footer;
