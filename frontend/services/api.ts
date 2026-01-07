@@ -42,6 +42,17 @@ export const dataAPI = {
   getAllTags: () => api.get('/tags'),
 };
 
+// Tambahkan fungsi ini untuk mempermudah pengambilan data user
+export const getUserData = async () => {
+  try {
+    const userJson = await AsyncStorage.getItem('user');
+    return userJson ? JSON.parse(userJson) : null;
+  } catch (error) {
+    console.error("Gagal mengambil data user dari storage", error);
+    return null;
+  }
+};
+
 // --- 3. KUCING API ---
 export const kucingAPI = {
   getAll: () => api.get('/kucing'),
@@ -73,13 +84,13 @@ export const pembayaranAPI = {
 
 // --- 6. RESCUE API ---
 export const rescueAPI = {
-  getAll: () => api.get('/api/rescue'), // Sesuai prefix di server.js
-  getById: (id: string | number) => api.get(`/api/rescue/${id}`),
-  create: (formData: FormData) => api.post('/api/rescue', formData, {
+  getAll: (params?: any) => api.get('/rescue', { params }), 
+  getById: (id: string | number) => api.get(`/rescue/${id}`),
+  create: (formData: FormData) => api.post('/rescue', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
   updateStatus: (id: string | number, status: string) => 
-    api.put(`/api/rescue/${id}/status`, { status })
+    api.patch(`/rescue/${id}`, { status }) // Gunakan PATCH sesuai rescueRoutes.js
 };
 
 export const getRescue = async () => {
@@ -122,6 +133,14 @@ export const ChatService = {
   getMessages: (id_percakapan: string) => api.get(`/chat/messages/${id_percakapan}`),
   saveMessage: (data: any) => api.post('/chat/send', data),
   markAsRead: (id_percakapan: string) => api.put(`/chat/read/${id_percakapan}`),
+};
+
+// --- 9. SHELTER API (TAMBAHKAN INI) ---
+export const shelterAPI = {
+  cekStatus: (userId: string | number) => api.get(`/cek-status/${userId}`),
+  ajukan: (formData: FormData) => api.post('/ajukan-shelter', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
 };
 
 export const BASE_URL = 'http://192.168.1.3:3000'; 

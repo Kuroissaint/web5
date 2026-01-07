@@ -8,6 +8,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
 import RegionSelect from '../components/RegionSelect'; // Pastikan path komponen benar
+import { getUserData } from '../services/api';
 
 const initialState = {
   namaKucing: "",
@@ -71,12 +72,18 @@ const FormAjuan = () => {
   };
 
   const handleKirimForm = async () => {
+    const userData = await getUserData();
+    if (!userData) {
+        Alert.alert("Akses Ditolak", "Kamu harus login terlebih dahulu.");
+        router.replace('/login');
+        return;
+      }
     if (form.fotos.length === 0) return Alert.alert("Foto Kosong", "Minimal unggah 1 foto.");
     if (!form.namaKucing) return Alert.alert("Data Kurang", "Nama kucing wajib diisi.");
 
     setIsSubmitting(true);
     const formData = new FormData();
-    
+    formData.append("pengguna_id", String(userData.id));
     formData.append("nama_lengkap", form.namaPemilik);
     formData.append("telepon", form.nohp);
     formData.append("alamat_lengkap", form.alamat);

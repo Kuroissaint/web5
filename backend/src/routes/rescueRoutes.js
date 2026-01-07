@@ -4,6 +4,15 @@ async function rescueRoutes(fastify, options) {
   // Menggunakan pengguna_id sesuai database Kuroissaint
   const rescueController = new RescueController(fastify.db || fastify.mysql);
 
+  // Tambahkan { preHandler: [fastify.authenticate] } pada route yang wajib login
+  fastify.post('/', { preHandler: [fastify.authenticate] }, (request, reply) =>
+    rescueController.createRescue(request, reply)
+  );
+
+  fastify.delete('/:id', { preHandler: [fastify.authenticate] }, (request, reply) =>
+    rescueController.deleteRescue(request, reply)
+  );
+  
   // Ambil Semua & Search (Mendukung filter ?pengguna_id=...)
   fastify.get('/', (request, reply) => rescueController.searchRescue(request, reply));
 

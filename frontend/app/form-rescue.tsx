@@ -7,6 +7,7 @@ import {
 import * as ImagePicker from 'expo-image-picker';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import axios from 'axios';
+import { getUserData } from '../services/api';
 
 const API_URL = 'http://192.168.1.3:3000/api'; // Ganti dengan IP kamu
 
@@ -59,6 +60,15 @@ const FormRescue = () => {
       }
     }
   };
+  
+  const checkAuth = async () => {
+    const userData = await getUserData();
+    if (!userData) {
+      Alert.alert("Wajib Login", "Silakan login untuk mengakses fitur ini.");
+      router.replace('/login');
+    }
+  };
+  checkAuth();
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -70,6 +80,12 @@ const FormRescue = () => {
   };
 
   const submitLaporan = async () => {
+    const userData = await getUserData();
+    if (!userData) {
+        Alert.alert("Akses Ditolak", "Kamu harus login terlebih dahulu.");
+        router.replace('/login');
+        return;
+      }
     if (!form.nama || !form.telepon || !form.tag_id || !form.lokasi) {
       Alert.alert("Peringatan", "Mohon isi semua data wajib!");
       return;
@@ -83,7 +99,7 @@ const FormRescue = () => {
       formData.append('deskripsi', form.deskripsi);
       formData.append('tag_id', form.tag_id);
       formData.append('waktu_penemuan', form.waktu);
-      formData.append('pengguna_id', '1'); // Ganti dengan ID user login
+      formData.append("pengguna_id", String(userData.id)); 
 
       if (image) {
         formData.append('gambar', {

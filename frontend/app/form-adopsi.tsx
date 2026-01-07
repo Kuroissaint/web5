@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View, Text, TextInput, ScrollView, TouchableOpacity,
   StyleSheet, Alert, ActivityIndicator, SafeAreaView,
@@ -7,6 +7,7 @@ import {
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import api from '../services/api';
 import RegionSelect from '../components/RegionSelect'; //
+import { getUserData } from '../services/api';
 
 const FormAdopsi = () => {
   const router = useRouter();
@@ -39,41 +40,52 @@ const FormAdopsi = () => {
     }));
   };
 
-  const handleSubmit = async () => {
-    if (!form.komitmen) return Alert.alert("Peringatan", "Harap setujui komitmen merawat.");
-    if (!form.provId || !form.kabId || !form.kecId) return Alert.alert("Error", "Mohon lengkapi lokasi Anda.");
+    const handleSubmit = async () => {
+        // 1. Validasi awal
+        if (!form.komitmen) return Alert.alert("Peringatan", "Harap setujui komitmen merawat.");
+        if (!form.provId || !form.kabId || !form.kecId) return Alert.alert("Error", "Mohon lengkapi lokasi Anda.");
 
-    setIsSubmitting(true);
-    try {
-      const payload = {
-        penggunaId: 1, // Dummy ID user
-        kucingId: cat?.id || 0,
-        namaLengkap: form.namaLengkap,
-        umur: parseInt(form.umur) || 0,
-        alamat: form.alamat,
-        nohp: form.nohp,
-        pekerjaan: form.pekerjaan,
-        pernahPelihara: form.pernahPelihara === 'Ya' ? 1 : 0,
-        alasan: form.alasan,
-        metodeBayar: "Transfer",
-        provinsi_id: form.provId,
-        kabupaten_kota_id: form.kabId,
-        kecamatan_id: form.kecId,
-      };
+        // 2. Ambil data user yang sedang login
+        const userData = await getUserData();
 
-      // FIX: Menghapus /api karena sudah ada di baseURL
-      const res = await api.post('/adopsi/submit', payload);
-      
-      if (res.data.success) {
-        Alert.alert("Berhasil! 🎉", "Aplikasi adopsi Anda telah terkirim.");
-        router.replace('/(tabs)/adopt');
-      }
-    } catch (err: any) {
-      Alert.alert("Gagal", "Terjadi kesalahan pada server.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+        if (!userData) {
+        Alert.alert("Wajib Login", "Silakan login terlebih dahulu untuk mengajukan adopsi.");
+        router.replace('/login');
+        return;
+        }
+
+        setIsSubmitting(true);
+        try {
+        const payload = {
+            // 3. Gunakan ID asli dari storage (pastikan key-nya sesuai backend: penggunaId atau pengguna_id)
+            penggunaId: userData.id, 
+            kucingId: cat?.id || 0,
+            namaLengkap: form.namaLengkap,
+            umur: parseInt(form.umur) || 0,
+            alamat: form.alamat,
+            nohp: form.nohp,
+            pekerjaan: form.pekerjaan,
+            pernahPelihara: form.pernahPelihara === 'Ya' ? 1 : 0,
+            alasan: form.alasan,
+            metodeBayar: "Transfer",
+            provinsi_id: form.provId,
+            kabupaten_kota_id: form.kabId,
+            kecamatan_id: form.kecId,
+        };
+
+        // Mengirim data sebagai JSON (bukan FormData)
+        const res = await api.post('/adopsi/submit', payload);
+        
+        if (res.data.success) {
+            Alert.alert("Berhasil! 🎉", "Aplikasi adopsi Anda telah terkirim.");
+            router.replace('/(tabs)/adopt');
+        }
+        } catch (err: any) {
+        Alert.alert("Gagal", "Terjadi kesalahan pada server.");
+        } finally {
+        setIsSubmitting(false);
+        }
+    };
 
   return (
     <SafeAreaView style={styles.safeArea}>

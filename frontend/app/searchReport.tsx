@@ -15,6 +15,7 @@ import RegionSelect from '../components/RegionSelect';
 import { kucingAPI, dataAPI } from '../services/api'; 
 import { Colors } from '../constants/Colors';
 import { Picker } from '@react-native-picker/picker';
+import { getUserData } from '../services/api';
 
 const SearchReportScreen = () => {
   const router = useRouter();
@@ -73,7 +74,14 @@ const SearchReportScreen = () => {
     fetchTags();
   }, []);
 
-  
+  const checkAuth = async () => {
+    const userData = await getUserData();
+    if (!userData) {
+      Alert.alert("Wajib Login", "Silakan login untuk mengakses fitur ini.");
+      router.replace('/login');
+    }
+  };
+  checkAuth();
 
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateText, setDateText] = useState("");
@@ -129,6 +137,13 @@ const SearchReportScreen = () => {
 
   // 2. SUBMIT LAPORAN
   const handleSubmit = async () => {
+    const userData = await getUserData(); 
+
+    if (!userData) {
+      Alert.alert("Akses Ditolak", "Kamu harus login terlebih dahulu.");
+      router.replace('/login');
+      return;
+    }
     if (!form.nama || !form.telepon || images.length === 0 || !region.provinsiId) {
       Alert.alert("Data Belum Lengkap", "Mohon isi Nama, No. Telp, Lokasi, dan minimal 1 Foto.");
       return;
@@ -138,6 +153,7 @@ const SearchReportScreen = () => {
     try {
       const formData = new FormData();
       formData.append('nama', form.nama);
+      formData.append("pengguna_id", String(userData.id));
       formData.append('nama_kucing', form.nama_kucing);
       formData.append('telepon', form.telepon);
       formData.append('waktu', form.waktu);

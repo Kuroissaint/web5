@@ -33,8 +33,8 @@ fastify.decorate('db', pool);
 // --- 2. FASTIFY PLUGINS & STATIC (Tetap Sama) ---
 // backend/server.js
 fastify.register(require('@fastify/cors'), {
-  origin: true, // ✅ Ubah jadi true agar menerima koneksi dari IP HP mana pun
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  origin: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'], // Tambahkan PATCH
   credentials: true
 });
 

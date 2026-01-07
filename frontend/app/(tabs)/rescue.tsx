@@ -142,7 +142,7 @@ const RescuePage = () => {
     <View style={styles.container}>
       {/* Tombol Navigasi Atas */}
       <View style={styles.topButtons}>
-        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/FormRescue")}>
+        <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/form-recue")}>
           <Text style={styles.actionText}>Kirim Laporan</Text>
         </TouchableOpacity>
         <TouchableOpacity style={styles.actionButton} onPress={() => router.push("/MyReportspage")}>
@@ -155,7 +155,7 @@ const RescuePage = () => {
         {userStatus === 'user' ? (
           <TouchableOpacity 
             style={styles.registerShelterBtn}
-            onPress={() => router.push("/FormAjukanShelter")}
+            onPress={() => router.push("/form-shelter")}
           >
             <Ionicons name="business-outline" size={20} color="#fff" style={{marginRight: 8}} />
             <Text style={styles.btnText}>Daftar Mitra Shelter</Text>
