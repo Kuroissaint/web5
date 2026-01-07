@@ -32,20 +32,36 @@ async function chatRoutes(fastify, options) {
     // 3. Simpan pesan baru
 
     fastify.post('/send', async (request, reply) => {
-        const { pengirim_id, penerima_id, pesan } = request.body;
-        let { id_percakapan } = request.body;
+        const { pengirim_id, pesan } = request.body;
+        let { id_percakapan, penerima_id } = request.body;
 
         try {
-            // --- LOGIKA VALIDASI BARU ---
+            // 1. Validasi id_percakapan: Apakah ini ID Ruangan yang beneran ada?
             let isConversationValid = false;
             if (id_percakapan && id_percakapan !== "null" && id_percakapan !== 0) {
-                // Cek apakah ID ini benar-benar ada di tabel percakapan
                 const [check] = await db.query("SELECT id_percakapan FROM percakapan WHERE id_percakapan = ?", [id_percakapan]);
                 if (check.length > 0) isConversationValid = true;
             }
 
-            // Jika ID tidak valid atau tidak dikirim, cari berdasarkan pengirim & penerima
+            // --- VALIDASI TAMBAHAN ---
+            if (penerima_id === "undefined" || penerima_id === "null" || !penerima_id) {
+                // Jika id_percakapan adalah angka valid, gunakan itu sebagai backup
+                if (id_percakapan && !isNaN(id_percakapan)) {
+                    // Lanjut ke pengecekan percakapan
+                } else {
+                    return reply.status(400).send({ 
+                        success: false, 
+                        message: "ID Penerima tidak valid (undefined). Pastikan data pemilik kucing tersedia." 
+                    });
+                }
+            }
+
+            // 2. Jika ID Ruangan TIDAK VALID, berarti 'id' yang dikirim adalah ID User Lawan
             if (!isConversationValid) {
+                // Jika id_percakapan ternyata adalah ID User, pindahkan ke penerima_id
+                if (!penerima_id) penerima_id = id_percakapan;
+
+                // Cari apakah mereka sudah punya percakapan sebelumnya
                 const [existing] = await db.query(
                     `SELECT id_percakapan FROM percakapan 
                     WHERE (id_user_1 = ? AND id_user_2 = ?) 
@@ -56,7 +72,7 @@ async function chatRoutes(fastify, options) {
                 if (existing.length > 0) {
                     id_percakapan = existing[0].id_percakapan;
                 } else {
-                    // Buat percakapan baru jika benar-benar belum pernah chat
+                    // Buat percakapan baru. Pastikan penerima_id adalah ID User yang valid!
                     const [newConv] = await db.query(
                         "INSERT INTO percakapan (id_user_1, id_user_2) VALUES (?, ?)",
                         [pengirim_id, penerima_id]
@@ -65,17 +81,13 @@ async function chatRoutes(fastify, options) {
                 }
             }
 
-            // Simpan pesan menggunakan ID yang sudah divalidasi/dibuat
+            // 3. Simpan pesan
             const [result] = await db.query(
                 "INSERT INTO pesan (id_percakapan, pengirim_id, pesan, is_read) VALUES (?, ?, ?, 0)",
                 [id_percakapan, pengirim_id, pesan]
             );
 
-            return { 
-                success: true, 
-                id_pesan: result.insertId, 
-                id_percakapan: id_percakapan 
-            };
+            return { success: true, id_pesan: result.insertId, id_percakapan: id_percakapan };
         } catch (error) {
             console.error("❌ Database Error Chat:", error.message);
             return reply.status(500).send({ success: false, error: error.message });

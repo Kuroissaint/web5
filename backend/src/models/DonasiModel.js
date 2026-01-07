@@ -6,7 +6,7 @@ class DonasiModel {
     // Ambil daftar user yang merupakan shelter
     async getShelters() {
         const [rows] = await this.db.execute(
-            "SELECT id, username, email, deskripsi_shelter, qris_image FROM pengguna WHERE role = 'shelter'"
+            "SELECT id, username, email, foto_profil FROM pengguna WHERE status = 'shelter'"
         );
         return rows;
     }

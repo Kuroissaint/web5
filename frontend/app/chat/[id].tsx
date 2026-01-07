@@ -75,31 +75,37 @@ const ChatDetail = () => {
     if (inputText.trim() === '' || !myId) return;
 
     const messageData = {
-        id_percakapan: id, // ID dari URL (Bisa ID Ruangan atau ID User)
-        pengirim_id: myId,
-        penerima_id: id,   // TAMBAHKAN INI: ID Penerima (diambil dari URL id)
-        pesan: inputText,
-        waktu: new Date().toISOString()
-      };
+      // idPercakapan akan bernilai null jika baru pertama chat (dari detail kucing)
+      // atau bernilai ID Ruangan jika dari Inbox
+      id_percakapan: idPercakapan, 
+      pengirim_id: myId,
+      penerima_id: id,            // Tetap kirim id (sebagai target user)
+      pesan: inputText,
+      waktu: new Date().toISOString()
+    };
 
-      try {
-        // 1. Simpan ke database via API
+    try {
         const res = await ChatService.saveMessage(messageData);
   
         if (res.data.success) {
-          // Kirim via Socket menggunakan ID Percakapan asli dari server
+          // PENTING: Jika chat baru dibuat, backend kasih ID Ruangan yang asli
+          const realConvId = res.data.id_percakapan;
+          
+          if (!idPercakapan) {
+            setIdPercakapan(realConvId);
+            socket.emit('join_chat', realConvId);
+          }
+  
           socket.emit('send_message', {
             ...messageData,
-            id_percakapan: res.data.id_percakapan // Pakai ID asli dari database
+            id_percakapan: realConvId
           });
   
-          // Update state lokal
           setMessages((prev) => [...prev, { ...messageData, pengirim_id: myId }]);
           setInputText('');
         }
       } catch (error) {
         console.error('Gagal mengirim pesan:', error);
-        Alert.alert("Gagal", "Pesan tidak terkirim.");
       }
 };
 

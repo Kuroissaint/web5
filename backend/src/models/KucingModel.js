@@ -50,9 +50,9 @@ class KucingModel {
     async findAll() {
         const [rows] = await this.db.execute(
           `SELECT 
-              k.id, k.nama_kucing, k.jenis_kelamin, k.umur, k.warna_bulu, k.status,
-              pa.biaya_adopsi, pa.alamat_lengkap, g.url_gambar
-           FROM kucing k
+                k.id, k.pengguna_id, k.nama_kucing, k.jenis_kelamin, k.umur, k.warna_bulu, k.status,
+                pa.biaya_adopsi, pa.alamat_lengkap, g.url_gambar
+            FROM kucing k
            LEFT JOIN pengajuan_adopsi pa on pa.kucing_id = k.id
            LEFT JOIN gambar g ON k.id = g.entitas_id AND g.jenis_entitas = 'kucing'
            -- FIX: Sekarang filter berdasarkan kategori 'adopt'
@@ -67,7 +67,7 @@ class KucingModel {
     async findById(id) {
         const [rows] = await this.db.execute(
             `SELECT 
-                k.id, k.nama_kucing, k.umur, k.jenis_kelamin, k.warna_bulu, k.deskripsi, k.sudah_steril,
+                k.id, k.pengguna_id, k.nama_kucing, k.umur, k.jenis_kelamin, k.warna_bulu, k.deskripsi, k.sudah_steril,
                 pa.alamat_lengkap, pa.biaya_adopsi, pa.telepon as no_telepon_pemilik, pa.nama_lengkap as nama_pemilik,
                 p.nama_provinsi, kk.nama_kabupaten_kota, kc.nama_kecamatan,
                 g.url_gambar

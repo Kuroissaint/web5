@@ -47,10 +47,12 @@ const AdoptKucing = () => {
       const mappedData = actualData.map((k: any) => {
         const fotoString = k.url_gambar || "";
         const daftarFoto = fotoString.split(',').filter((f: string) => f.trim() !== "");
+        
         const galeriLengkap = daftarFoto.map((namaFile: string) => {
           const file = namaFile.trim();
           if (file.startsWith('http')) return file;
-          return `${BASE_URL}/uploads/${file}`;
+          
+          return file.startsWith('/') ? `${BASE_URL}${file}` : `${BASE_URL}/uploads/${file}`;
         });
 
         return {

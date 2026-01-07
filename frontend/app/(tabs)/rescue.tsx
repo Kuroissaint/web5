@@ -18,6 +18,7 @@ import Navbar from "../../components/Navbar";
 import { Colors } from "../../constants/Colors";
 import { Layout } from "../../constants/Layout";
 import { useFocusEffect } from '@react-navigation/native';
+import { BASE_URL } from '../../services/api';
 
 const RescuePage = () => {
   const router = useRouter();
@@ -83,9 +84,10 @@ const RescuePage = () => {
 
   const renderItem = ({ item }: { item: any }) => {
     const imageUri = item.url_gambar_utama
-      ? item.url_gambar_utama.replace('localhost', '192.168.1.3')
-      : "https://via.placeholder.com/300x200.png?text=No+Image";
-
+  ? (item.url_gambar_utama.startsWith('http') 
+      ? item.url_gambar_utama.replace('localhost', '192.168.1.3') 
+      : `${BASE_URL}${item.url_gambar_utama}`)
+  : "https://via.placeholder.com/300x200.png?text=No+Image";
     return (
       <View style={styles.card}>
         <Image source={{ uri: imageUri }} style={styles.image} />
