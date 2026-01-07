@@ -1,14 +1,24 @@
 import React, { useState, useCallback } from 'react';
 import { 
-  View, Text, TextInput, FlatList, Image, TouchableOpacity, 
-  StyleSheet, ActivityIndicator, Pressable 
+  View, 
+  Text, 
+  FlatList, 
+  Image, 
+  TouchableOpacity, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Pressable 
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useFocusEffect } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
+
 import api, { BASE_URL } from '../../services/api';
 import { Colors } from '../../constants/Colors';
-import Navbar from '../../components/Navbar'; // 1. Import Navbar
+import { Layout } from '../../constants/Layout';
+import Navbar from '../../components/Navbar';
+import SearchBar from '../../components/SearchBar';
 
 interface Kucing {
   id: number;
@@ -73,23 +83,6 @@ const AdoptKucing = () => {
     kucing.kota?.toLowerCase().includes(pencarian.toLowerCase())
   );
 
-  const renderHeader = () => (
-    <View style={styles.contentPadding}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Cari lokasi atau nama kucing..."
-          placeholderTextColor={Colors.textMuted}
-          value={pencarian}
-          onChangeText={setPencarian}
-        />
-      </View>
-      <View style={styles.titleRow}>
-        <Text style={styles.sectionTitle}>Kucing Siap Adopsi 🐱</Text>
-      </View>
-    </View>
-  );
-
   const renderCatCard = ({ item }: { item: Kucing }) => {
     const genderSafe = (item.jenisKelamin || "").toLowerCase();
     const isJantan = genderSafe === 'jantan';
@@ -147,15 +140,32 @@ const AdoptKucing = () => {
   };
 
   return (
-    <View style={styles.mainContainer}>
+    <View style={styles.container}>
       <Navbar /> 
 
-      <SafeAreaView style={styles.viewBg} edges={['bottom', 'left', 'right']}>
-        {/* Banner Judul Konsisten */}
-        <View style={styles.headerBanner}>
-          <Text style={styles.headerTitle}>Adopsi Kucing</Text>
+      {/* HEADER BARU GAYA SEARCHSCREEN */}
+      <View style={styles.headerContainer}>
+        <View style={styles.headerRow}>
+          <Text style={styles.headerTitle}>Adopsi Kucing 🐱</Text>
+          <TouchableOpacity 
+            style={styles.btnAction} 
+            onPress={() => router.push('/form-ajuan')}
+          >
+            <Ionicons name="add-circle-outline" size={14} color={Colors.white} />
+            <Text style={styles.btnActionText}>Daftarkan</Text>
+          </TouchableOpacity>
         </View>
 
+        <View style={styles.searchRow}>
+          <SearchBar 
+            value={pencarian} 
+            onChangeText={setPencarian} 
+            placeholder="Cari nama atau kota..." 
+          />
+        </View>
+      </View>
+
+      <SafeAreaView style={styles.viewBg} edges={['bottom', 'left', 'right']}>
         {isLoading ? (
           <View style={styles.centerWrapper}>
             <ActivityIndicator size="large" color={Colors.primary} />
@@ -166,76 +176,79 @@ const AdoptKucing = () => {
             renderItem={renderCatCard}
             keyExtractor={(item) => item.id.toString()}
             numColumns={2}
-            columnWrapperStyle={styles.row}
-            ListHeaderComponent={renderHeader}
+            columnWrapperStyle={styles.columnWrapper}
             showsVerticalScrollIndicator={false}
             contentContainerStyle={styles.listContainer}
             onRefresh={fetchKucingList}
             refreshing={isLoading}
+            ListEmptyComponent={
+              <View style={styles.centerWrapper}>
+                <Text style={{ color: Colors.textMuted }}>Tidak ada anabul yang cocok 😸</Text>
+              </View>
+            }
           />
         )}
       </SafeAreaView>
-
-      {/* FAB berwarna Cokelat */}
-      <TouchableOpacity 
-        style={styles.fab}
-        onPress={() => router.push('/form-ajuan')} 
-        activeOpacity={0.8}
-      >
-        <Text style={styles.fabIcon}>🏠</Text>
-        <Text style={styles.fabText}>Daftarkan Kucing</Text>
-      </TouchableOpacity>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  mainContainer: { flex: 1, backgroundColor: Colors.white },
-  viewBg: { flex: 1, backgroundColor: '#F8F9FB' },
+  container: { flex: 1, backgroundColor: Colors.white },
+  viewBg: { flex: 1, backgroundColor: '#FAFAFA' },
   
-  headerBanner: { 
-    padding: 24, 
-    paddingTop: 10, 
-    backgroundColor: Colors.primary, 
-    borderBottomRightRadius: 30,
-    marginBottom: 5
+  // Header Container (White + Shadow)
+  headerContainer: { 
+    paddingHorizontal: 16, 
+    paddingBottom: 16, 
+    backgroundColor: Colors.white, 
+    borderBottomLeftRadius: 20, 
+    borderBottomRightRadius: 20, 
+    ...Layout.shadow,
+    zIndex: 99,
   },
-  headerTitle: { fontSize: 28, fontWeight: "800", color: Colors.white },
-  
-  contentPadding: { paddingHorizontal: 20, paddingTop: 20 },
-  searchContainer: {
-    backgroundColor: Colors.white,
-    borderRadius: 15,
-    paddingHorizontal: 15,
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOpacity: 0.05,
-    shadowRadius: 10,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: Colors.border
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 12,
+    marginBottom: 16,
   },
-  searchInput: { height: 50, fontSize: 15, color: Colors.textPrimary },
+  headerTitle: { fontSize: 18, fontWeight: '900', color: Colors.primary },
   
-  titleRow: { marginBottom: 10 },
-  sectionTitle: { fontSize: 18, fontWeight: '800', color: Colors.textPrimary },
+  // Tombol Aksi di Header
+  btnAction: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    gap: 4,
+    elevation: 2,
+  },
+  btnActionText: { color: Colors.white, fontWeight: '800', fontSize: 10 },
   
-  listContainer: { paddingBottom: 100 },
-  row: { justifyContent: 'space-between', paddingHorizontal: 20 },
+  searchRow: { marginTop: 4 },
+
+  // Content Styles
+  listContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 },
+  columnWrapper: { justifyContent: 'space-between' },
   
+  // Card Card Styles
   catCard: { 
     backgroundColor: Colors.white, 
     borderRadius: 20, 
-    marginBottom: 20, 
+    marginBottom: 16, 
     width: '48%', 
     elevation: 3,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: '#F0E6DE'
+    borderColor: '#eee'
   },
   imageWrapper: { width: '100%', height: 150, position: 'relative' },
   catImage: { width: '100%', height: '100%', resizeMode: 'cover' },
-  imagePlaceholder: { width: '100%', height: '100%', backgroundColor: '#F0F0F0' },
+  imagePlaceholder: { width: '100%', height: '100%', backgroundColor: '#f0f0f0' },
   genderBadge: { position: 'absolute', top: 10, right: 10, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 8 },
   genderText: { fontSize: 9, fontWeight: 'bold' },
   
@@ -250,20 +263,6 @@ const styles = StyleSheet.create({
   btnDetail: { paddingVertical: 10, borderRadius: 10, alignItems: 'center', borderWidth: 1 },
   btnDetailText: { fontWeight: '800', fontSize: 12 },
   
-  fab: {
-    position: 'absolute',
-    bottom: 30,
-    right: 20,
-    backgroundColor: Colors.primary,
-    flexDirection: 'row',
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 30,
-    elevation: 8,
-    alignItems: 'center',
-  },
-  fabIcon: { color: Colors.white, fontSize: 18, marginRight: 8 },
-  fabText: { color: Colors.white, fontWeight: 'bold', fontSize: 13 },
   centerWrapper: { flex: 1, justifyContent: 'center', alignItems: 'center', marginTop: 50 }
 });
 
