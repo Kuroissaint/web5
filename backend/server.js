@@ -1,7 +1,10 @@
 // backend/server.js
 require('dotenv').config();
 const path = require('path');
-const fastify = require('fastify')({ logger: true });
+const fastify = require('fastify')({ 
+  logger: true, 
+  ignoreTrailingSlash: true
+});
 const fastifySocketIO = require('fastify-socket.io');
 const mysql = require('mysql2/promise');
 
@@ -86,16 +89,16 @@ fastify.get('/health', async (request, reply) => {
   return { status: 'OK', message: 'Server is running' };
 });
 
+fastify.register(require('./src/routes/authRoutes'), { prefix: '/api/auth' }); 
+fastify.register(require('./src/routes/rescueRoutes'), { prefix: '/api/rescue' }); // <--- Naikkan ke sini
+fastify.register(require('./src/routes/chatRoutes'), { prefix: '/api/chat' });
+
 fastify.register(require('./src/routes/kucingRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/wilayahRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/donasiRoutes'), { prefix: '/api' });
-fastify.register(require('./src/routes/authRoutes'), { prefix: '/api/auth' }); 
-fastify.register(require('./src/routes/rescueRoutes'), { prefix: '/api' }); 
 fastify.register(require('./src/routes/shelterRoutes'), { prefix: '/api' });
 fastify.register(require('./src/routes/pengajuanAdopsiRoutes'), { prefix: '/api' }); 
 fastify.register(require('./src/routes/aplikasiAdopsiRoutes'), { prefix: '/api' });
-fastify.register(require('./src/routes/chatRoutes'), { prefix: '/api/chat' });
-
 // --- 4. ERROR HANDLER ---
 
 fastify.setErrorHandler((error, request, reply) => {

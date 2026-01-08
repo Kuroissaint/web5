@@ -7,11 +7,10 @@ async function authRoutes(fastify, options) {
 
     fastify.post('/login', (req, res) => authController.login(req, res));
     fastify.post('/register', (req, res) => authController.register(req, res));
-    fastify.get('/stats', { preHandler: [fastify.authenticate] }, async (request, reply) => {
-        const userId = request.user.id;
-        const stats = await penggunaModel.getStats(userId);
-        return { success: true, data: stats };
-    });
+    fastify.get('/stats', 
+        { preHandler: [fastify.authenticate] }, 
+        (req, res) => authController.getUserStats(req, res)
+    );
     fastify.put('/update-profile', 
         { preHandler: [fastify.authenticate] }, 
         (req, res) => authController.updateProfile(req, res)

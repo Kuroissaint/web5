@@ -8,7 +8,7 @@ class PenggunaModel {
     // 2. Ubah dari static method menjadi instance method
     async getById(id) {
         const [rows] = await this.db.execute(
-            `SELECT id, username, email, status, provinsi_id, foto_profil, 
+            `SELECT id, username, email, status, provinsi_id, foto_profil AS foto, 
                     deskripsi_shelter, qr_donasi, no_hp, alamat 
              FROM pengguna WHERE id = ?`,
             [id]
@@ -18,22 +18,26 @@ class PenggunaModel {
 
     // Fungsi Baru: Untuk mengambil statistik user biasa
     async getStats(userId) {
-        // 1. Hitung jumlah laporan rescue
-        const [rescueCount] = await this.db.execute(
-            "SELECT COUNT(*) as total FROM laporan_rescue WHERE pengguna_id = ?", 
-            [userId]
-        );
-        
-        // 2. Hitung total nominal donasi yang statusnya sudah 'verified' (asumsi ada kolom status)
-        const [donationSum] = await this.db.execute(
-            "SELECT SUM(nominal) as total FROM donasi WHERE donatur_id = ? AND status = 'verified'",
-            [userId]
-        );
+        try {
+            // 1. Hitung jumlah laporan rescue
+            const [rescueCount] = await this.db.execute(
+                "SELECT COUNT(*) as total FROM laporan_rescue WHERE pengguna_id = ?", 
+                [userId]
+            );
+            
+            // 2. Hitung total nominal donasi yang statusnya sudah 'verified' (asumsi ada kolom status)
+            const [donationSum] = await this.db.execute(
+                "SELECT SUM(nominal) as total FROM donasi WHERE donatur_id = ? AND status = 'verified'",
+                [userId]
+            );
 
-        return {
-            totalRescue: rescueCount[0].total || 0,
-            totalDonasi: donationSum[0].total || 0
-        };
+            return {
+                totalRescue: rescueCount[0].total || 0,
+                totalDonasi: donationSum[0].total || 0
+            };
+        } catch (error) {
+            throw new Error("Gagal mengambil statistik: " + error.message);
+        }
     }
 
     async update(userId, data) {

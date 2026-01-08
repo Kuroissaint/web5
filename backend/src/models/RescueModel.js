@@ -46,7 +46,7 @@ class RescueModel {
     const [rows] = await this.db.execute(query, params); 
     rows.forEach(r => {
       // Pastikan IP laptop benar di .env atau ganti manual di sini
-      const baseUrl = process.env.BASE_URL || 'http://192.168.1.3:3000';
+      const baseUrl = process.env.BASE_URL || 'http://192.168.64.217:3000';
       r.gambar = r.url_gambar_utama ? `${baseUrl}${r.url_gambar_utama}` : null;
       r.tags = r.tags || "Umum";
     });
@@ -135,9 +135,17 @@ class RescueModel {
     return result.insertId;
   }
 
-  async updateStatus(id, status) {
-    await this.db.execute('UPDATE laporan_rescue SET status = ? WHERE id = ?', [status, id]);
-  }
+  async updateStatus(id, status, shelterId = null) {
+    if (shelterId) {
+        // Update status sekaligus catat shelter mana yang menyelesaikan
+        await this.db.execute(
+            'UPDATE laporan_rescue SET status = ?, shelter_id = ? WHERE id = ?', 
+            [status, shelterId, id]
+        );
+    } else {
+        await this.db.execute('UPDATE laporan_rescue SET status = ? WHERE id = ?', [status, id]);
+    }
+}
 
   async delete(id) {
     await this.db.execute('DELETE FROM laporan_rescue WHERE id = ?', [id]);

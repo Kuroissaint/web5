@@ -10,9 +10,13 @@ async function kucingRoutes(fastify, options) {
   fastify.get('/kucing/:id', (request, reply) => 
     kucingController.getKucingById(request, reply)
   );
-  fastify.put('/kucing/:id/status', (request, reply) => 
-    kucingController.updateStatusLaporan(request, reply)
-);
+  fastify.put('/kucing/:id/status', { onRequest: [fastify.authenticate] }, (req, res) => 
+      kucingController.updateStatusLaporan(req, res)
+  );
+
+  fastify.delete('/kucing/:id', { onRequest: [fastify.authenticate] }, (req, res) => 
+      kucingController.deleteSearch(req, res)
+  );
   
   fastify.post('/kucing', { onRequest: [fastify.authenticate] }, (request, reply) => 
     kucingController.createKucing(request, reply)

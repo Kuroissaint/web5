@@ -59,7 +59,7 @@ const ShelterDashboard = () => {
     // Penanganan URL Gambar agar muncul di HP (Ganti localhost ke IP laptop)
     const rawImage = item.gambar || item.url_gambar_utama;
     const imageUri = rawImage
-      ? (rawImage.startsWith('http') ? rawImage.replace('localhost', '192.168.1.3') : `http://192.168.1.3:3000${rawImage}`)
+      ? (rawImage.startsWith('http') ? rawImage.replace('localhost', '192.168.64.217') : `http://192.168.64.217:3000${rawImage}`)
       : "https://via.placeholder.com/300x200.png?text=No+Image";
 
     return (

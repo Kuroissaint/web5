@@ -18,7 +18,7 @@ import { io } from 'socket.io-client';
 import { ChatService, getUserData } from '../../services/api';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const socket = io('http://192.168.1.3:3000'); // Sesuaikan IP Laptop
+const socket = io('http://192.168.64.217:3000'); // Sesuaikan IP Laptop
 
 const ChatDetail = () => {
   const { id, name } = useLocalSearchParams(); 
@@ -48,6 +48,15 @@ const ChatDetail = () => {
     return () => { socket.off('receive_message'); };
   }, [id, idPercakapan]);
 
+  const markMessagesAsRead = async (convId: string) => {
+    try {
+      // ChatService.markAsRead sudah ada di api.ts Bapak
+      await ChatService.markAsRead(convId);
+    } catch (error) {
+      console.error("Gagal menandai pesan dibaca:", error);
+    }
+  };
+
   const setupChat = async () => {
     try {
       const user = await getUserData();
@@ -61,6 +70,8 @@ const ChatDetail = () => {
           setMessages(response.data.data || []);
           setIdPercakapan(id as string);
           socket.emit('join_chat', id);
+
+          markMessagesAsRead(id as string);
         }
       }
     } catch (error: any) {
@@ -70,6 +81,22 @@ const ChatDetail = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    setupChat();
+
+    socket.on('receive_message', (newMessage) => {
+      if (newMessage.id_percakapan == idPercakapan || newMessage.id_percakapan == id) {
+        setMessages((prev) => [...prev, newMessage]);
+
+        // --- 3. PANGGIL SAAT TERIMA PESAN BARU (Real-time) ---
+        // Jika kita sedang di dalam room, tandai pesan baru tersebut langsung sebagai 'read'
+        markMessagesAsRead(idPercakapan || (id as string));
+      }
+    });
+
+    return () => { socket.off('receive_message'); };
+  }, [id, idPercakapan]);
 
   const handleSend = async () => {
     if (inputText.trim() === '' || !myId) return;

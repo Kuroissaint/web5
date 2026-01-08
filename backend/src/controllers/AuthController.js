@@ -15,7 +15,7 @@ class AuthController {
         try {
             // TAMBAHKAN: status, deskripsi_shelter, dan qr_donasi ke dalam query SELECT
             const [users] = await this.db.query(
-                `SELECT id, username, email, password_hash, foto_profil, 
+                `SELECT id, username, email, password_hash, foto_profil AS foto, 
                         provinsi_id, status, deskripsi_shelter, qr_donasi 
                  FROM pengguna WHERE email = ?`,
                 [email]
@@ -58,9 +58,9 @@ class AuthController {
 
     // --- FUNGSI REGISTER ---
     async register(request, reply) {
-        const { fullName, email, password, provinsiId } = request.body; 
-        if (!fullName || !email || !password) {
-            return reply.code(400).send({ success: false, message: 'Nama Lengkap, Email, dan Password harus diisi.' });
+        const { username, email, password, provinsiId } = request.body; 
+        if (!username || !email || !password) {
+            return reply.code(400).send({ success: false, message: 'username, Email, dan Password harus diisi.' });
         }
 
         try {
@@ -70,8 +70,6 @@ class AuthController {
             }
 
             const passwordHash = await bcrypt.hash(password, SALT_ROUNDS);
-            const cleanName = fullName.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-            const username = cleanName.substring(0, 10) + Math.floor(1000 + Math.random() * 9000);
 
             const insertQuery = `INSERT INTO pengguna (username, email, password_hash, provinsi_id) VALUES (?, ?, ?, ?)`;
             const [result] = await this.db.query(insertQuery, [username, email, passwordHash, provinsiId || null]); 
@@ -136,6 +134,27 @@ class AuthController {
         const buffer = typeof file.toBuffer === 'function' ? await file.toBuffer() : file._buf;
         await fs.writeFile(savePath, buffer);
         return `/uploads/${folder}/${filename}`;
+    }
+    
+    async getUserStats(request, reply) {
+        try {
+            const userId = request.user.id; // Diambil dari token JWT
+            const penggunaModel = new PenggunaModel(this.db);
+            
+            const stats = await penggunaModel.getStats(userId);
+            
+            return reply.send({
+                success: true,
+                message: "Statistik berhasil dimuat",
+                data: stats
+            });
+        } catch (error) {
+            request.log.error(error);
+            return reply.status(500).send({ 
+                success: false, 
+                message: "Gagal mengambil data statistik." 
+            });
+        }
     }
 
 }

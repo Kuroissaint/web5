@@ -8,7 +8,6 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import api, { kucingAPI, BASE_URL } from '../../services/api';
 import { Colors } from '../../constants/Colors';
-
 const { width } = Dimensions.get('window');
 
 const DetailKucingScreen = () => {
@@ -57,6 +56,32 @@ const DetailKucingScreen = () => {
     } catch (error) {
       Alert.alert("Error", "Gagal memperbarui status.");
     }
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      "Hapus Laporan", 
+      "Apakah Anda yakin ingin menghapus laporan ini secara permanen?", 
+      [
+        { text: "Batal", style: "cancel" },
+        { 
+          text: "Ya, Hapus", 
+          style: "destructive", 
+          onPress: async () => {
+            try {
+              // Pastikan menggunakan cat.id atau parameter id dari URL
+              const response = await api.delete(`/kucing/${id}`);
+              if (response.data.success) {
+                Alert.alert("Berhasil", "Laporan telah dihapus.");
+                router.replace('/(tabs)/search'); // Kembali ke halaman pencarian
+              }
+            } catch (error) {
+              Alert.alert("Error", "Gagal menghapus laporan.");
+            }
+          } 
+        }
+      ]
+    );
   };
 
   if (loading) {
@@ -149,49 +174,52 @@ const DetailKucingScreen = () => {
       {/* BOTTOM ACTIONS (Dua POV) */}
       <View style={styles.bottomActions}>
         {isOwner ? (
-          // POV PEMILIK: Kelola Laporan
-          <View style={styles.row}>
-            <TouchableOpacity 
-              style={[styles.btnAction, { backgroundColor: '#F5F5F5', flex: 1 }]} 
-              onPress={() => router.push(`/searchReport?editId=${id}`)}
-            >
-              <Text style={{ color: '#666', fontWeight: 'bold' }}>Edit Laporan</Text>
-            </TouchableOpacity>
+          // POV PEMILIK: Tampilkan Edit, Hapus, dan Tandai Selesai
+          <View style={styles.column}>
+            <View style={styles.row}>
+              <TouchableOpacity 
+                style={[styles.btnAction, { backgroundColor: '#F5F5F5', flex: 1 }]} 
+                onPress={() => router.push(`/searchReport?editId=${id}`)}
+              >
+                <Text style={{ color: '#666', fontWeight: 'bold' }}>Edit</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={[styles.btnAction, { backgroundColor: '#FFE0E0', flex: 1 }]} 
+                onPress={handleDelete}
+              >
+                <Text style={{ color: '#D32F2F', fontWeight: 'bold' }}>Hapus</Text>
+              </TouchableOpacity>
+            </View>
+
             {cat?.status === 'hilang' && (
               <TouchableOpacity 
-                style={[styles.btnAction, { backgroundColor: Colors.primary, flex: 2 }]} 
+                style={[styles.btnAction, { backgroundColor: Colors.primary, marginTop: 10 }]} 
                 onPress={() => handleUpdateStatus('ditemukan')}
               >
-                <Text style={{ color: 'white', fontWeight: 'bold' }}>Tandai Ditemukan</Text>
+                <Text style={{ color: 'white', fontWeight: 'bold' }}>Tandai Sudah Ditemukan</Text>
               </TouchableOpacity>
             )}
           </View>
         ) : (
-          // POV PENGGUNA LAIN: Chat & Saya Menemukan
-          <View style={styles.row}>
-            <TouchableOpacity 
-              style={styles.btnChat} 
-              onPress={() => router.push({
-                pathname: `/chat/${cat.pengguna_id}`,
-                params: { name: cat.nama_pelapor }
-              })}
-            >
-              <Ionicons name="chatbubbles-outline" size={20} color={Colors.primary} />
-              <Text style={styles.btnChatText}>Chat Pelapor</Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity 
-              style={styles.btnFound} 
-              onPress={() => handleUpdateStatus('ditemukan')}
-            >
-              <Text style={styles.btnFoundText}>Saya Menemukan!</Text>
-            </TouchableOpacity>
-          </View>
-        )}
+            // POV PENGGUNA LAIN: Hanya tombol Chat
+            <View style={styles.row}>
+              <TouchableOpacity 
+                style={[styles.btnChat, { flex: 1 }]} 
+                onPress={() => router.push({
+                  pathname: `/chat/${cat.pengguna_id}`,
+                  params: { name: cat.nama_pelapor }
+                })}
+              >
+                <Ionicons name="chatbubbles-outline" size={20} color={Colors.primary} />
+                <Text style={styles.btnChatText}>Chat Pelapor</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+        </View>
       </View>
-    </View>
-  );
-};
+    );
+  };
 
 // ... InfoItem Component & Styles ...
 const InfoItem = ({ label, value, isFullWidth = false }: any) => (
@@ -234,6 +262,7 @@ const styles = StyleSheet.create({
   sectionTitle: { fontSize: 16, fontWeight: '800', marginTop: 25, marginBottom: 10 },
   description: { fontSize: 14, color: '#666', lineHeight: 22 },
   
+  column: { flexDirection: 'column' },
   bottomActions: { position: 'absolute', bottom: 0, width: '100%', padding: 15, backgroundColor: 'white', borderTopWidth: 1, borderTopColor: '#eee', paddingBottom: 30 },
   row: { flexDirection: 'row', gap: 12 },
   btnChat: { flex: 1, flexDirection: 'row', height: 50, borderWidth: 1.5, borderColor: Colors.primary, borderRadius: 12, justifyContent: 'center', alignItems: 'center', gap: 8 },

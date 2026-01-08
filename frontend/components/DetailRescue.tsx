@@ -32,7 +32,7 @@ interface Laporan {
 }
 
 // KONFIGURASI URL (Sesuaikan IP dengan IP Server kamu)
-const BASE_URL = 'http://192.168.1.3:3000';
+const BASE_URL = 'http://192.168.64.217:3000';
 const API_URL = `${BASE_URL}/api`;
 const DEFAULT_FOTO = 'https://via.placeholder.com/400x300.png?text=No+Image';
 
@@ -95,7 +95,7 @@ const DetailRescue: React.FC<DetailRescueProps> = ({
 
         if (rawFoto) {
           if (rawFoto.startsWith('http')) {
-            finalFoto = rawFoto.replace('localhost', '192.168.1.3');
+            finalFoto = rawFoto.replace('localhost', '192.168.64.217');
           } else {
             finalFoto = `${BASE_URL}${rawFoto.startsWith('/') ? rawFoto : `/uploads/${rawFoto}`}`;
           }

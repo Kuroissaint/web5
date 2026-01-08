@@ -1,13 +1,25 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { ScrollView, StyleSheet, View, Text, SafeAreaView } from 'react-native';
 import { useRouter } from 'expo-router'; 
 import Hero from '../../components/HeroSection';
 import InfoSection from '../../components/InfoSection';
 import Navbar from '../../components/Navbar'; 
-import FooterSection from '../../components/FooterSection';
+import { getUserData } from '../../services/api';
 
 const HomeScreen = () => {
   const router = useRouter();
+  const [username, setUsername] = useState('Anabul Lover');
+
+  useEffect(() => {
+    const loadUser = async () => {
+      const userData = await getUserData(); // Mengambil data dari AsyncStorage
+      if (userData && userData.username) {
+        setUsername(userData.username);
+      }
+    };
+    loadUser();
+  }, []);
+
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -16,7 +28,7 @@ const HomeScreen = () => {
         
         {/* Tambahkan Greeting Section */}
         <View style={styles.welcomeSection}>
-          <Text style={styles.welcomeTitle}>Halo, Nafis!</Text>
+          <Text style={styles.welcomeTitle}>Halo, {username}!</Text> 
           <Text style={styles.welcomeSub}>Mari buat dunia lebih baik untuk anabul.</Text>
         </View>
 

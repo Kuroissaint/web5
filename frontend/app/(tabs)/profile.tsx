@@ -8,28 +8,38 @@ import { Colors } from '../../constants/Colors';
 import { authAPI, BASE_URL } from '../../services/api';
 
 const ProfileScreen = () => {
-  const router = useRouter();
-  const [user, setUser] = useState<any>(null);
-  const [stats, setStats] = useState({ reports: 0, donations: 0 }); // State untuk stats user
-
-  const loadUser = useCallback(async () => {
-    const userData = await AsyncStorage.getItem('user');
-    if (userData) {
-      const parsedUser = JSON.parse(userData);
-      setUser(parsedUser);
-      
-      // Jika dia user biasa, ambil data statistik (Contoh dummy, nanti hubungkan ke API)
-      if (parsedUser.status === 'user') {
-        fetchUserStats(parsedUser.id);
+    const router = useRouter();
+    const [user, setUser] = useState<any>(null);
+    const [stats, setStats] = useState({ reports: 0, donations: 0 });
+  
+    const loadUser = useCallback(async () => {
+      const userData = await AsyncStorage.getItem('user');
+      if (userData) {
+        const parsedUser = JSON.parse(userData);
+        setUser(parsedUser);
+        
+        // Jika dia user biasa, ambil data statistik asli
+        if (parsedUser.status === 'user') {
+          fetchUserStats(); 
+        }
       }
-    }
-  }, []);
+    }, []);
 
-  const fetchUserStats = async (userId: number) => {
-    // Simulasi fetch data dari backend
-    // const res = await api.get(`/user/stats/${userId}`);
-    setStats({ reports: 5, donations: 250000 }); // Contoh data dummy
-  };
+    const fetchUserStats = async () => {
+        try {
+          const response = await authAPI.getStats();
+          if (response.data.success) {
+            // Sesuaikan dengan nama field dari backend (totalRescue & totalDonasi)
+            setStats({ 
+              reports: response.data.data.totalRescue, 
+              donations: response.data.data.totalDonasi 
+            });
+          }
+        } catch (error: any) {
+          console.error("Gagal fetch statistik asli:", error.message);
+          // Jika gagal, biarkan tetap 0 agar tidak menyesatkan
+        }
+    };
 
   useFocusEffect(
     useCallback(() => {
@@ -146,6 +156,18 @@ const ProfileScreen = () => {
            </TouchableOpacity>
         )}
 
+        {user?.status === 'admin' && (
+        <TouchableOpacity 
+            style={[styles.menuItem, { backgroundColor: '#fff9f5' }]} 
+            onPress={() => router.push('/AdminDashboard')}
+        >
+            <View style={styles.menuLeft}>
+            <Ionicons name="shield-checkmark-outline" size={24} color="#e67e22" />
+            <Text style={[styles.menuText, { color: '#e67e22', fontWeight: 'bold' }]}>Dashboard Admin Utama</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color="#e67e22" />
+        </TouchableOpacity>
+        )}
         <TouchableOpacity style={[styles.menuItem, {marginTop: 20}]} onPress={handleLogout}>
           <View style={styles.menuLeft}>
             <Ionicons name="log-out-outline" size={24} color="red" />

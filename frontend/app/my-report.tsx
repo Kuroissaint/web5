@@ -16,7 +16,7 @@ import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 
 // Pastikan IP ini sesuai dengan IP server laptop kamu
-const BASE_URL = 'http://192.168.1.3:3000';
+const BASE_URL = 'http://192.168.64.217:3000';
 const API_URL = `${BASE_URL}/api`;
 
 const MyReportPage = () => {
@@ -112,7 +112,7 @@ const MyReportPage = () => {
     const rawImage = item.gambar || item.url_gambar_utama;
     const imageUri = rawImage
       ? (rawImage.startsWith('http') 
-          ? rawImage.replace('localhost', '192.168.1.3') 
+          ? rawImage.replace('localhost', '192.168.64.217') 
           : `${BASE_URL}${rawImage}`)
       : "https://via.placeholder.com/300x200.png?text=No+Image";
 

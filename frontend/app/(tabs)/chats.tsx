@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { StyleSheet, View, Text, Image, FlatList, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from '@react-navigation/native';
 
 import { ChatService, IMAGE_URL } from "../../services/api"; 
 import Navbar from "../../components/Navbar";
@@ -30,9 +31,11 @@ const Chats = () => {
     }
   };
 
-  useEffect(() => {
-    fetchInbox();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchInbox();
+    }, [])
+  );
 
   const filteredConversations = conversations.filter((c: any) => 
     c.nama_lawan_bicara?.toLowerCase().includes(searchQuery.toLowerCase())

@@ -165,15 +165,17 @@ async searchRescue(request, reply) {
     try {
       const { id } = request.params;
       const { status } = request.body;
-
-      await this.rescueModel.updateStatus(id, status);
-
+      const shelter_id = request.user.id; 
+  
+      // Jika status diubah jadi selesai, kirimkan juga shelter_id ke model
+      await this.rescueModel.updateStatus(id, status, status === 'selesai' ? shelter_id : null);
+  
       return reply.send({
         success: true,
         message: 'Status laporan rescue berhasil diupdate'
       });
     } catch (error) {
-        throw new Error('Gagal update status laporan rescue: ' + error.message);
+        throw new Error('Gagal update status: ' + error.message);
     }
   }
 

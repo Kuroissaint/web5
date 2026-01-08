@@ -287,6 +287,33 @@ class KucingModel {
             return result;
         }
 
+        async deleteSearch(kucingId) {
+            let connection;
+            try {
+                connection = await this.db.getConnection();
+                await connection.beginTransaction();
+        
+                // 1. Hapus Gambar terkait
+                await connection.execute("DELETE FROM gambar WHERE entitas_id = ? AND jenis_entitas = 'kucing'", [kucingId]);
+                
+                // 2. Hapus Tag terkait
+                await connection.execute("DELETE FROM tag_kucing WHERE kucing_id = ?", [kucingId]);
+                
+                // 3. Hapus Laporan Hilang terkait
+                await connection.execute("DELETE FROM laporan_hilang WHERE kucing_id = ?", [kucingId]);
+                
+                // 4. Hapus data utama Kucing
+                const [result] = await connection.execute("DELETE FROM kucing WHERE id = ?", [kucingId]);
+        
+                await connection.commit();
+                return result;
+            } catch (error) {
+                if (connection) await connection.rollback();
+                throw error;
+            } finally {
+                if (connection) connection.release();
+            }
+        }
     // =====================================================================
     // BAGIAN 3: RESCUE MODEL
     // =====================================================================

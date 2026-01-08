@@ -10,7 +10,7 @@ const EditProfile = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [nama, setNama] = useState("");
+  const [username, setNama] = useState("");
   const [noHp, setNoHp] = useState("");
   const [image, setImage] = useState<string | null>(null);
 
@@ -23,7 +23,7 @@ const EditProfile = () => {
     if (data) {
       const parsed = JSON.parse(data);
       setUser(parsed);
-      setNama(parsed.nama);
+      setNama(parsed.username);
       setNoHp(parsed.no_hp || "");
       if (parsed.foto) setImage(`${BASE_URL}${parsed.foto}`);
     }
@@ -44,16 +44,16 @@ const EditProfile = () => {
     try {
       const formData = new FormData();
       formData.append("id", user.id);
-      formData.append("nama", nama);
+      formData.append("username", username);
       formData.append("no_hp", noHp);
-      formData.append("existing_foto", user.foto || "");
+      formData.append("existing_foto_profil", user.foto_profil || "");
 
       if (image && !image.startsWith('http')) {
         const fileName = image.split('/').pop();
         const match = /\.(\w+)$/.exec(fileName || '');
         const type = match ? `image/${match[1]}` : `image/jpeg`;
         // @ts-ignore
-        formData.append("foto", { uri: image, name: fileName, type });
+        formData.append("foto_profil", { uri: image, name: fileName, type });
       }
 
       const res = await authAPI.updateProfile(formData);
@@ -80,7 +80,7 @@ const EditProfile = () => {
       </TouchableOpacity>
 
       <Text style={styles.label}>Nama Lengkap</Text>
-      <TextInput style={styles.input} value={nama} onChangeText={setNama} />
+      <TextInput style={styles.input} value={username} onChangeText={setNama} />
 
       <Text style={styles.label}>Nomor WhatsApp</Text>
       <TextInput style={styles.input} value={noHp} onChangeText={setNoHp} keyboardType="phone-pad" />

@@ -19,6 +19,7 @@ import { Colors } from '../../constants/Colors';
 import { Layout } from '../../constants/Layout';
 import Navbar from '../../components/Navbar';
 import SearchBar from '../../components/SearchBar';
+import { getUserData } from '../../services/api';
 
 interface Kucing {
   id: number;
@@ -35,6 +36,7 @@ const AdoptKucing = () => {
   const [pencarian, setPencarian] = useState('');
   const [kucingList, setKucingList] = useState<Kucing[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [userStatus, setUserStatus] = useState<'user' | 'shelter'>('user');
   const router = useRouter();
 
   const fetchKucingList = useCallback(async () => {
@@ -74,9 +76,25 @@ const AdoptKucing = () => {
     }
   }, []);
 
+  const fetchUserStatus = async () => {
+    try {
+      const userData = await getUserData(); 
+      if (userData && userData.id) {
+        const response = await fetch(`${BASE_URL}/api/cek-status/${userData.id}`);
+        const result = await response.json();
+        if (result.success && result.data) {
+          setUserStatus(result.data.status);
+        }
+      }
+    } catch (error: any) {
+      console.log("❌ Gagal cek status:", error.message);
+    }
+  };
+
   useFocusEffect(
     useCallback(() => {
       fetchKucingList(); 
+      fetchUserStatus(); 
     }, [fetchKucingList])
   );
 
@@ -150,11 +168,20 @@ const AdoptKucing = () => {
         <View style={styles.headerRow}>
           <Text style={styles.headerTitle}>Adopsi Kucing 🐱</Text>
           <TouchableOpacity 
-            style={styles.btnAction} 
-            onPress={() => router.push('/form-ajuan')}
+            style={[
+              styles.btnAction,
+              userStatus !== 'user' && { backgroundColor: Colors.success } // Berubah hijau jika shelter
+            ]} 
+            onPress={() => router.push(userStatus === 'user' ? '/form-ajuan' : '/aktivitas')} // Redirect ke aktivitas jika shelter
           >
-            <Ionicons name="add-circle-outline" size={14} color={Colors.white} />
-            <Text style={styles.btnActionText}>Daftarkan</Text>
+            <Ionicons 
+              name={userStatus === 'user' ? "add-circle-outline" : "list-outline"} 
+              size={14} 
+              color={Colors.white} 
+            />
+            <Text style={styles.btnActionText}>
+              {userStatus === 'user' ? "Daftarkan" : "Kelola Pengajuan"}
+            </Text>
           </TouchableOpacity>
         </View>
 

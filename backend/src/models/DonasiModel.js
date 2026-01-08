@@ -11,6 +11,38 @@ class DonasiModel {
         return rows;
     }
 
+    async getShelterDetail(shelterId) {
+        // 1. Ambil info dasar shelter
+        const [profile] = await this.db.execute(
+            "SELECT id, username, foto_profil, deskripsi_shelter FROM pengguna WHERE id = ?",
+            [shelterId]
+        );
+    
+        // 2. Hitung Total Rescue yang Selesai oleh shelter ini
+        const [rescueStats] = await this.db.execute(
+            "SELECT COUNT(*) as total FROM laporan_rescue WHERE shelter_id = ? AND status = 'selesai'",
+            [shelterId]
+        );
+    
+        // 3. Hitung Total Kucing yang Berhasil Diadopsi dari shelter ini
+        // (Asumsi: kucing tersebut milik shelter dan status aplikasi adopsinya 'disetujui')
+        const [adoptStats] = await this.db.execute(
+            `SELECT COUNT(*) as total 
+             FROM aplikasi_adopsi aa
+             JOIN kucing k ON aa.kucing_id = k.id
+             WHERE k.shelter_id = ? AND aa.status = 'disetujui'`,
+            [shelterId]
+        );
+    
+        return {
+            ...profile[0],
+            stats: {
+                rescue_count: rescueStats[0].total || 0,
+                adopt_count: adoptStats[0].total || 0
+            }
+        };
+    }
+
     // Simpan data donasi baru
     async createDonasi(data) {
         const query = `INSERT INTO donasi (donatur_id, shelter_id, nominal, bukti_transfer, keterangan, status) 

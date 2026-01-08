@@ -42,4 +42,42 @@ module.exports = async function (fastify, opts) {
   // 2. Kirim Pengajuan Form Shelter (Multipart)
   // Pastikan di server.js sudah terdaftar @fastify/multipart
   fastify.post('/ajukan-shelter', handleAjukanShelter);
+
+  // 3. Endpoint untuk mengambil data pengajuan shelter (Untuk Admin)
+
+  // Ambil semua pengajuan yang belum diproses (Admin Only)
+    fastify.get('/admin/pengajuan', { onRequest: [fastify.authenticate] }, async (request, reply) => {
+        if (request.user.status !== 'admin') return reply.status(403).send({ message: "Akses ditolak" });
+        
+        const [rows] = await fastify.db.query(
+            "SELECT ps.*, u.username FROM pengajuan_shelter ps JOIN pengguna u ON ps.pengguna_id = u.id WHERE ps.status = 'pending'"
+        );
+        return { success: true, data: rows };
+    });
+
+    // Proses Pengajuan (Approve/Reject)
+    fastify.post('/admin/verifikasi-shelter', { onRequest: [fastify.authenticate] }, async (request, reply) => {
+        const { pengajuan_id, action } = request.body; // action: 'disetujui' atau 'ditolak'
+        const db = fastify.db;
+
+        try {
+            // 1. Ambil data pengajuan untuk tahu siapa user-nya
+            const [pengajuan] = await db.query("SELECT pengguna_id FROM pengajuan_shelter WHERE id = ?", [pengajuan_id]);
+            if (pengajuan.length === 0) return reply.status(404).send({ message: "Data tidak ada" });
+
+            const userId = pengajuan[0].pengguna_id;
+
+            // 2. Update status di tabel pengajuan_shelter
+            await db.query("UPDATE pengajuan_shelter SET status = ? WHERE id = ?", [action, pengajuan_id]);
+
+            // 3. Jika disetujui, ubah status user di tabel pengguna menjadi 'shelter'
+            if (action === 'disetujui') {
+                await db.query("UPDATE pengguna SET status = 'shelter' WHERE id = ?", [userId]);
+            }
+
+            return { success: true, message: `Pengajuan berhasil di-${action}` };
+        } catch (err) {
+            return reply.status(500).send({ error: err.message });
+        }
+    });
 };

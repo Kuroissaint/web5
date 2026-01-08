@@ -27,7 +27,7 @@ const RegisterScreen = () => {
   const router = useRouter();
   
   // --- States ---
-  const [fullName, setFullName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -51,7 +51,7 @@ const RegisterScreen = () => {
 
   // --- Handler Daftar ---
   const handleSignUp = async () => {
-    if (!fullName || !email || !password || !confirmPassword || !provinsiId) {
+    if (!username || !email || !password || !confirmPassword || !provinsiId) {
       Alert.alert('Data Belum Lengkap', 'Harap isi semua bidang termasuk konfirmasi password.');
       return;
     }
@@ -63,7 +63,7 @@ const RegisterScreen = () => {
 
     setLoading(true);
     try {
-      const userData = { fullName, email, password, provinsiId };
+      const userData = { username, email, password, provinsiId };
       await authAPI.register(userData);
       
       Alert.alert('Registrasi Berhasil! 🎉', 'Silakan masuk dengan akun baru kamu.', [
@@ -107,8 +107,8 @@ const RegisterScreen = () => {
               <Input
                 label="Nama Lengkap"
                 placeholder="Contoh: Athar Ghaisan"
-                value={fullName}
-                onChangeText={setFullName}
+                value={username}
+                onChangeText={setUsername}
                 editable={!loading}
               />
 

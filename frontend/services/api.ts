@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 1. ⚠️ PENTING: Ganti '192.168.x.x' dengan IP lokal laptop Anda (cek di CMD via 'ipconfig')
 // Jangan gunakan localhost atau 127.0.0.1 karena tidak akan terdeteksi oleh HP/Emulator
-const IP_LAPTOP = '192.168.1.3'; 
+const IP_LAPTOP = '192.168.64.217'; 
 const API_BASE_URL = `http://${IP_LAPTOP}:3000/api`;
 
 const api = axios.create({
@@ -55,6 +55,7 @@ export const authAPI = {
   logout: async () => {
     await AsyncStorage.multiRemove(['token', 'user']);
   },
+  getStats: () => api.get('/auth/stats'),
   updateProfile: (formData: FormData) => api.put('/auth/update-profile', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
     transformRequest: (data) => data,
@@ -88,7 +89,8 @@ export const kucingAPI = {
   // Create menggunakan FormData untuk upload gambar
   create: (formData: FormData) => api.post('/kucing', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
-  })
+  }),
+  delete: (id: string | number) => api.delete(`/kucing/${id}`)
 };
 
 // --- 4. DONASI API ---
@@ -176,9 +178,22 @@ export const shelterAPI = {
   ajukan: (formData: FormData) => api.post('/ajukan-shelter', formData, {
     headers: { 'Content-Type': 'multipart/form-data' }
   }),
+  getShelterDetail: (id: string) => api.get(`/donasi/shelter/${id}`),
 };
 
-export const BASE_URL = 'http://192.168.1.3:3000'; 
+// --- 9. ADMIN API ---
+export const adminAPI = {
+  // Shelter
+  getPendingShelters: () => api.get('/admin/pengajuan'),
+  verifyShelter: (data: { pengajuan_id: number, action: 'disetujui' | 'ditolak' }) => 
+    api.post('/admin/verifikasi-shelter', data),
+
+  // Donasi
+  getPendingDonations: () => api.get('/admin/list-verifikasi'),
+  verifyDonation: (data: { donasi_id: number, action: 'verified' | 'rejected' }) => 
+    api.post('/admin/verifikasi-donasi', data),
+};
+export const BASE_URL = 'http://192.168.64.217:3000'; 
 export const IMAGE_URL = `${BASE_URL}/uploads/`; 
 
 export default api;

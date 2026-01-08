@@ -185,13 +185,40 @@ async createKucing(request, reply) {
   }
 }
 
-// backend/src/controllers/KucingController.js
+
 async updateStatusLaporan(request, reply) {
   try {
       const { id } = request.params;
       const { status } = request.body;
+      const userId = request.user.id; // Dari Token
+
+      // CEK OWNERSHIP
+      const kucing = await this.kucingModel.getById(id);
+      if (kucing.pengguna_id !== userId) {
+          return reply.status(403).send({ success: false, message: 'Bukan laporan milik Anda!' });
+      }
+
       await this.kucingModel.updateLaporanStatus(id, status);
       return reply.send({ success: true, message: 'Status berhasil diperbarui' });
+  } catch (error) {
+      return reply.status(500).send({ success: false, error: error.message });
+  }
+}
+
+async deleteSearch(request, reply) {
+  try {
+      const { id } = request.params;
+      const userId = request.user.id;
+
+      const kucing = await this.kucingModel.getById(id);
+      if (!kucing) return reply.status(404).send({ success: false, message: 'Data tidak ditemukan' });
+
+      if (kucing.pengguna_id !== userId) {
+          return reply.status(403).send({ success: false, message: 'Tidak diizinkan menghapus laporan ini!' });
+      }
+
+      await this.kucingModel.deleteKucing(id);
+      return reply.send({ success: true, message: 'Laporan berhasil dihapus' });
   } catch (error) {
       return reply.status(500).send({ success: false, error: error.message });
   }

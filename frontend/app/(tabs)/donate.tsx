@@ -64,10 +64,7 @@ const DonateTab = () => {
   const renderShelter = ({ item }: any) => (
     <TouchableOpacity 
       style={styles.shelterCard}
-      onPress={() => router.push({ 
-        pathname: `/donate/${item.id}`, 
-        params: { shelter: JSON.stringify(item) } 
-      })}
+      onPress={() => router.push(`/shelter/${item.id}`)}
     >
       <View style={styles.imagePlaceholder}>
         <Ionicons name="business" size={30} color={Colors.primary} />
