@@ -69,10 +69,37 @@ const AdminDashboard = () => {
     <View style={styles.card}>
       <View style={styles.cardHeader}>
         <Ionicons name="business-outline" size={24} color={Colors.primary} />
-        <Text style={styles.userName}>{item.username}</Text>
+        {/* Menampilkan Nama Shelter */}
+        <Text style={styles.userName}>{item.nama_shelter}</Text>
       </View>
-      <Text style={styles.cardText}><Text style={{fontWeight:'bold'}}>Alasan:</Text> {item.alasan}</Text>
-      <Text style={styles.cardText}><Text style={{fontWeight:'bold'}}>Lokasi:</Text> {item.lokasi}</Text>
+      
+      {/* Menampilkan Nama Penanggung Jawab */}
+      <Text style={styles.cardText}>
+        <Text style={{fontWeight:'bold'}}>Penanggung Jawab:</Text> {item.penanggung_jawab}
+      </Text>
+
+      {/* Menampilkan Alamat/Daerah */}
+      <Text style={styles.cardText}>
+        <Text style={{fontWeight:'bold'}}>Alamat:</Text> {item.alamat}
+      </Text>
+
+      {/* Menampilkan WhatsApp untuk verifikasi manual jika perlu */}
+      <Text style={styles.cardText}>
+        <Text style={{fontWeight:'bold'}}>WhatsApp:</Text> {item.whatsapp}
+      </Text>
+      
+      {/* Menampilkan Foto KTP / Berkas Izin */}
+      {item.berkas_foto && (
+        <View style={{ marginTop: 10 }}>
+          <Text style={[styles.cardText, { fontWeight: 'bold', marginBottom: 5 }]}>Berkas Izin / KTP:</Text>
+          <Image 
+            // Pastikan path-nya sesuai dengan folder 'uploads/berkas' di backend
+            source={{ uri: `${BASE_URL}/uploads/berkas/${item.berkas_foto}` }}
+            style={styles.buktiImage} 
+            resizeMode="contain"
+          />
+        </View>
+      )}
       
       <View style={styles.actionRow}>
         <TouchableOpacity style={[styles.btn, styles.btnReject]} onPress={() => handleVerifyShelter(item.id, 'ditolak')}>

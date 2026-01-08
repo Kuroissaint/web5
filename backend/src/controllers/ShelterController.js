@@ -18,7 +18,8 @@ const handleAjukanShelter = async (request, reply) => {
       return reply.status(400).send({ success: false, message: "Foto wajib diunggah" });
     }
 
-    const fileName = `${Date.now()}_${fotoFile.filename}`;
+    // Di backend/src/controllers/ShelterController.js
+const fileName = `${Date.now()}_${fotoFile.filename.replace(/\s+/g, '_')}`; 
     const savePath = path.join(__dirname, '../../uploads/berkas/', fileName);
 
     // Pastikan folder ada

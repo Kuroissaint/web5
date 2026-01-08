@@ -38,7 +38,7 @@ const RescuePage = () => {
       const userData = await getUserData(); 
       if (userData && userData.id) {
         // PENTING: Sesuaikan IP_LAPTOP jika berubah di api.ts
-        const response = await fetch(`http://192.168.64.217:3000/api/cek-status/${userData.id}`);
+        const response = await fetch(`http://192.168.0.108:3000/api/cek-status/${userData.id}`);
         const result = await response.json();
         if (result.success && result.data) {
           setUserStatus(result.data.status);
@@ -85,7 +85,7 @@ const RescuePage = () => {
   const renderItem = ({ item }: { item: any }) => {
     const imageUri = item.url_gambar_utama
   ? (item.url_gambar_utama.startsWith('http') 
-      ? item.url_gambar_utama.replace('localhost', '192.168.64.217') 
+      ? item.url_gambar_utama.replace('localhost', '192.168.0.108') 
       : `${BASE_URL}${item.url_gambar_utama}`)
   : "https://via.placeholder.com/300x200.png?text=No+Image";
     return (

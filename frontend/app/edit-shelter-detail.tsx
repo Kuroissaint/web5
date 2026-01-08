@@ -12,6 +12,7 @@ const EditShelterDetail = () => {
   const [user, setUser] = useState<any>(null);
   const [deskripsi, setDeskripsi] = useState("");
   const [qrImage, setQrImage] = useState<string | null>(null);
+  const [shelterImage, setShelterImage] = useState<string | null>(null);
 
   useEffect(() => {
     loadUserData();
@@ -24,6 +25,7 @@ const EditShelterDetail = () => {
       setUser(parsed);
       setDeskripsi(parsed.deskripsi_shelter || "");
       if (parsed.qr_donasi) setQrImage(`${BASE_URL}${parsed.qr_donasi}`);
+      if (parsed.foto) setShelterImage(`${BASE_URL}${parsed.foto}`);
     }
   };
 
@@ -36,6 +38,16 @@ const EditShelterDetail = () => {
     if (!result.canceled) setQrImage(result.assets[0].uri);
   };
 
+  const pickShelterImage = async () => {
+    let result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [16, 9], // Biasanya shelter pakai landscape
+      quality: 0.5,
+    });
+    if (!result.canceled) setShelterImage(result.assets[0].uri);
+  };
+  
   const handleSave = async () => {
     setLoading(true);
     try {

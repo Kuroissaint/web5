@@ -18,7 +18,7 @@ import api from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Pastikan IP ini sesuai dengan IP server laptop kamu
-const BASE_URL = 'http://192.168.64.217:3000';
+const BASE_URL = 'http://192.168.0.108:3000';
 const API_URL = `${BASE_URL}/api`;
 
 const MyReportPage = () => {
@@ -28,12 +28,13 @@ const MyReportPage = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   const fetchMyReports = async () => {
+    setLoading(true); // Pastikan loading dimulai
     try {
       const userString = await AsyncStorage.getItem('user');
       if (userString) {
         const user = JSON.parse(userString);
         
-        // Kirim pengguna_id sebagai query parameter
+        // Gunakan instance 'api' agar interceptor token ikut terkirim
         const res = await api.get(`/rescue?pengguna_id=${user.id}`); 
         
         if (res.data.success) {
@@ -42,6 +43,9 @@ const MyReportPage = () => {
       }
     } catch (err) {
       console.error("Gagal ambil laporan saya:", err);
+    } finally {
+      setLoading(false);    
+      setRefreshing(false); // Menghentikan animasi tarik-untuk-refresh
     }
   };
 
@@ -56,9 +60,12 @@ const MyReportPage = () => {
 
   const handleDelete = async (id: number) => {
     try {
-      await axios.delete(`${API_URL}/rescue/${id}`);
+      // Gunakan 'api' bukan 'axios' agar token otomatis terlampir
+      await api.delete(`/rescue/${id}`); 
+      Alert.alert("Sukses", "Laporan berhasil dibatalkan.");
       fetchMyReports(); 
     } catch (error) {
+      console.error("Error delete:", error);
       Alert.alert("Gagal", "Gagal menghapus laporan.");
     }
   };
@@ -117,7 +124,7 @@ const MyReportPage = () => {
     const rawImage = item.gambar || item.url_gambar_utama;
     const imageUri = rawImage
       ? (rawImage.startsWith('http') 
-          ? rawImage.replace('localhost', '192.168.64.217') 
+          ? rawImage.replace('localhost', '192.168.0.108') 
           : `${BASE_URL}${rawImage}`)
       : "https://via.placeholder.com/300x200.png?text=No+Image";
 

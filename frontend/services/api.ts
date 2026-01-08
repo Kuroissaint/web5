@@ -3,7 +3,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // 1. ⚠️ PENTING: Ganti '192.168.x.x' dengan IP lokal laptop Anda (cek di CMD via 'ipconfig')
 // Jangan gunakan localhost atau 127.0.0.1 karena tidak akan terdeteksi oleh HP/Emulator
-const IP_LAPTOP = '192.168.64.217'; 
+const IP_LAPTOP = '192.168.0.108'; 
 const API_BASE_URL = `http://${IP_LAPTOP}:3000/api`;
 
 const api = axios.create({
@@ -193,7 +193,7 @@ export const adminAPI = {
   verifyDonation: (data: { donasi_id: number, action: 'verified' | 'rejected' }) => 
     api.post('/admin/verifikasi-donasi', data),
 };
-export const BASE_URL = 'http://192.168.64.217:3000'; 
+export const BASE_URL = 'http://192.168.0.108:3000'; 
 export const IMAGE_URL = `${BASE_URL}/uploads/`; 
 
 export default api;

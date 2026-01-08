@@ -46,7 +46,7 @@ class RescueModel {
     const [rows] = await this.db.execute(query, params); 
     rows.forEach(r => {
       // Pastikan IP laptop benar di .env atau ganti manual di sini
-      const baseUrl = process.env.BASE_URL || 'http://192.168.64.217:3000';
+      const baseUrl = process.env.BASE_URL || 'http://192.168.0.108:3000';
       r.gambar = r.url_gambar_utama ? `${baseUrl}${r.url_gambar_utama}` : null;
       r.tags = r.tags || "Umum";
     });
