@@ -22,7 +22,7 @@ class RescueController {
   // ✅ FUNGSI BARU: searchRescue (Pengganti getAll & fetchUserReports)
 async searchRescue(request, reply) {
     try {
-        const { ids, status } = request.query; 
+        const { ids, status, pengguna_id} = request.query; 
 
         let idsArray = [];
         if (ids) {

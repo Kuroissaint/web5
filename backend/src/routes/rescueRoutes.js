@@ -5,8 +5,9 @@ async function rescueRoutes(fastify, options) {
   const rescueController = new RescueController(fastify.db || fastify.mysql);
 
   // Ambil Semua & Search (Mendukung filter ?pengguna_id=...)
-  fastify.get('/', (request, reply) => rescueController.searchRescue(request, reply));
-
+  fastify.get('/', { preHandler: [fastify.authenticate] }, (request, reply) => 
+    rescueController.searchRescue(request, reply)
+  );
   // Ambil Detail
   fastify.get('/:id', (request, reply) => rescueController.getRescueById(request, reply));
 

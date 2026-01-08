@@ -5,6 +5,7 @@ import Hero from '../../components/HeroSection';
 import InfoSection from '../../components/InfoSection';
 import Navbar from '../../components/Navbar'; 
 import { getUserData } from '../../services/api';
+import { Layout } from '../../constants/Layout';
 
 const HomeScreen = () => {
   const router = useRouter();
@@ -75,29 +76,28 @@ const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#ffffff' },
   container: { flex: 1 },
   welcomeSection: {
-    paddingHorizontal: 20,
-    paddingVertical: 15,
+    paddingHorizontal: 16, // Disamakan dengan searchHeader
+    paddingVertical: 12,   // Disamakan dengan searchHeader
     backgroundColor: '#fff',
   },
-  welcomeTitle: { fontSize: 24, fontWeight: 'bold', color: '#333' },
-  welcomeSub: { fontSize: 14, color: '#666', marginTop: 4 },
+  welcomeTitle: { fontSize: 22, fontWeight: '900', color: '#333' }, // Disesuaikan sedikit lebih besar dari header biasa
+  welcomeSub: { fontSize: 13, color: '#666', marginTop: 2 },
   content: {
-    paddingHorizontal: 15,
-    paddingTop: 20,
+    paddingHorizontal: 16, // Disamakan dengan listContainer di search
+    paddingTop: 15,
   },
   sectionHeader: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#FF8C00', // Warna orange khas Meowment
-    marginBottom: 15,
-    marginLeft: 5,
+    fontSize: 18,          // Disamakan dengan headerTitle search
+    fontWeight: '900',     // Disamakan dengan headerTitle search
+    color: '#FF8C00', 
+    marginBottom: 12,
   },
   cardWrapper: {
-    marginBottom: 20,
-    // Di sini kamu bisa menambahkan shadow jika InfoSection belum memilikinya
-    borderRadius: 20,
+    marginBottom: 16,
+    borderRadius: 20,      // Konsisten dengan searchCard
     overflow: 'hidden',
     backgroundColor: '#fff',
+    ...Layout.shadow,      // Menggunakan shadow yang sama
   },
 });
 

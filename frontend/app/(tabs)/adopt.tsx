@@ -223,58 +223,57 @@ const AdoptKucing = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.white },
-  viewBg: { flex: 1, backgroundColor: '#FAFAFA' },
+    container: { flex: 1, backgroundColor: Colors.white },
+    viewBg: { flex: 1, backgroundColor: '#FAFAFA' },
+    
+    headerContainer: { 
+      paddingHorizontal: 16, 
+      paddingBottom: 12,       // Diubah dari 16 ke 12 agar sama dengan search
+      backgroundColor: Colors.white, 
+      borderBottomLeftRadius: 20, 
+      borderBottomRightRadius: 20, 
+      ...Layout.shadow,
+      zIndex: 99,
+    },
+    headerRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginVertical: 8,       // Disamakan dengan marginVertical headerRow search
+    },
+    headerTitle: { fontSize: 18, fontWeight: '900', color: Colors.primary },
+    
+    btnAction: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      backgroundColor: Colors.primary,
+      paddingVertical: 5,      // Disamakan dengan btnCreate search
+      paddingHorizontal: 12,
+      borderRadius: 8,
+      gap: 4,
+      elevation: 2,
+    },
+    btnActionText: { color: Colors.white, fontWeight: '800', fontSize: 10 },
+    
+    searchRow: { marginTop: 4 },
   
-  // Header Container (White + Shadow)
-  headerContainer: { 
-    paddingHorizontal: 16, 
-    paddingBottom: 16, 
-    backgroundColor: Colors.white, 
-    borderBottomLeftRadius: 20, 
-    borderBottomRightRadius: 20, 
-    ...Layout.shadow,
-    zIndex: 99,
-  },
-  headerRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-    marginBottom: 16,
-  },
-  headerTitle: { fontSize: 18, fontWeight: '900', color: Colors.primary },
-  
-  // Tombol Aksi di Header
-  btnAction: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    gap: 4,
-    elevation: 2,
-  },
-  btnActionText: { color: Colors.white, fontWeight: '800', fontSize: 10 },
-  
-  searchRow: { marginTop: 4 },
-
-  // Content Styles
-  listContainer: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 100 },
-  columnWrapper: { justifyContent: 'space-between' },
-  
-  // Card Card Styles
-  catCard: { 
-    backgroundColor: Colors.white, 
-    borderRadius: 20, 
-    marginBottom: 16, 
-    width: '48%', 
-    elevation: 3,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: '#eee'
-  },
+    listContainer: { 
+      paddingHorizontal: 16, 
+      paddingTop: 15,          // Disamakan dengan search
+      paddingBottom: 100 
+    },
+    columnWrapper: { justifyContent: 'space-between' },
+    
+    catCard: { 
+      backgroundColor: Colors.white, 
+      borderRadius: 20,        // Sudah konsisten
+      marginBottom: 16, 
+      width: '48%', 
+      elevation: 3,
+      overflow: 'hidden',
+      borderWidth: 1,
+      borderColor: '#eee'
+    },
   imageWrapper: { width: '100%', height: 150, position: 'relative' },
   catImage: { width: '100%', height: '100%', resizeMode: 'cover' },
   imagePlaceholder: { width: '100%', height: '100%', backgroundColor: '#f0f0f0' },
