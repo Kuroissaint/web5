@@ -18,7 +18,7 @@ import { io } from 'socket.io-client';
 import { ChatService, getUserData } from '../../services/api';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const socket = io('http://192.168.0.108:3000'); // Sesuaikan IP Laptop
+const socket = io('http://192.168.64.121:3000'); // Sesuaikan IP Laptop
 
 const ChatDetail = () => {
   const { id, name } = useLocalSearchParams(); 

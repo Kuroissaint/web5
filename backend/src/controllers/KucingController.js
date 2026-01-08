@@ -144,7 +144,7 @@ async createKucing(request, reply) {
       nama_pelapor: getValue(parts.nama_pelapor) || getValue(parts.nama), 
       telepon: getValue(parts.telepon),
       waktu_hilang: getValue(parts.waktu_hilang) || getValue(parts.waktu),
-      lokasi: getValue(parts.lokasi),
+      lokasi: getValue(parts.lokasi) || getValue(parts.lokasi_penemuan),
       
       // Wilayah
       provinsi_id: getValue(parts.provinsi_id) || null,

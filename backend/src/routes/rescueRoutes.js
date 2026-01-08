@@ -19,6 +19,10 @@ async function rescueRoutes(fastify, options) {
   // Update Status Penanganan
   fastify.patch('/:id', (request, reply) => rescueController.updateStatus(request, reply));
 
+  fastify.patch('/:id', { preHandler: [fastify.authenticate] }, (request, reply) => 
+    rescueController.updateStatus(request, reply)
+  );
+  
   // Hapus Laporan (Hanya jika belum diproses)
   fastify.delete('/:id', { preHandler: [fastify.authenticate] }, (request, reply) =>
     rescueController.deleteRescue(request, reply)

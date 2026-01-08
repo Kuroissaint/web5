@@ -18,7 +18,7 @@ import api from '../services/api';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Pastikan IP ini sesuai dengan IP server laptop kamu
-const BASE_URL = 'http://192.168.0.108:3000';
+const BASE_URL = 'http://192.168.64.121:3000';
 const API_URL = `${BASE_URL}/api`;
 
 const MyReportPage = () => {
@@ -50,7 +50,16 @@ const MyReportPage = () => {
   };
 
   useEffect(() => {
-    fetchMyReports();
+    const checkLogin = async () => {
+      const user = await AsyncStorage.getItem('user');
+      if (!user) {
+        Alert.alert("Wajib Login", "Silakan login terlebih dahulu.");
+        router.replace('/login');
+      } else {
+        fetchMyReports();
+      }
+    };
+    checkLogin();
   }, []);
 
   const onRefresh = () => {
@@ -124,7 +133,7 @@ const MyReportPage = () => {
     const rawImage = item.gambar || item.url_gambar_utama;
     const imageUri = rawImage
       ? (rawImage.startsWith('http') 
-          ? rawImage.replace('localhost', '192.168.0.108') 
+          ? rawImage.replace('localhost', '192.168.64.121') 
           : `${BASE_URL}${rawImage}`)
       : "https://via.placeholder.com/300x200.png?text=No+Image";
 
