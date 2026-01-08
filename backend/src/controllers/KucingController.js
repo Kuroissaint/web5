@@ -162,7 +162,7 @@ async createKucing(request, reply) {
     };
 
     // Validasi Minimal
-    if (!cleanData.nama_pelapor || !cleanData.telepon || !cleanData.lokasi) {
+    if (!cleanData.nama_pelapor || !cleanData.lokasi) {
         return reply.status(400).send({ success: false, error: 'Data pelapor dan lokasi wajib diisi.' });
     }
 

@@ -140,45 +140,71 @@ const SearchReportScreen = () => {
   // 2. MODIFIKASI: Submit Laporan (Ambil data user otomatis)
   const handleSubmit = async () => {
     const userData = await getUserData(); 
-
+  
     if (!userData) {
       Alert.alert("Akses Ditolak", "Kamu harus login terlebih dahulu.");
       router.replace('/login');
       return;
     }
-
-    // Validasi Foto & Lokasi (Nama & Telp tidak divalidasi karena otomatis)
-    if (images.length === 0 || !region.provinsiId) {
-      Alert.alert("Data Belum Lengkap", "Mohon isi Lokasi dan minimal 1 Foto.");
+  
+    // --- 1. CEK NOMOR HP (SOLUSI ERROR 400) ---
+    // Backend mewajibkan 'telepon'. Jika profil user belum ada No HP, hentikan proses.
+    if (!userData.no_hp) {
+      Alert.alert(
+        "Profil Belum Lengkap", 
+        "Nomor HP wajib ada agar penemu bisa menghubungi kamu. Silakan lengkapi profil dulu.",
+        [
+          { text: "Batal", style: "cancel" },
+          { text: "Ke Profil", onPress: () => router.push('/(tabs)/profile') } // Atau halaman edit profile
+        ]
+      );
       return;
     }
-
+  
+    // --- 2. CEK DETAIL LOKASI (SOLUSI ERROR 400) ---
+    // Backend membaca field 'lokasi' dari input ini. Kalau kosong -> Error 400.
+    if (!form.lokasi_detail || form.lokasi_detail.trim() === "") {
+      Alert.alert("Data Kurang", "Mohon isi kolom 'Detail Lokasi' (misal: nama jalan atau patokan).");
+      return;
+    }
+  
+    // Validasi Foto & Region (Pilihan Dropdown)
+    if (images.length === 0 || !region.provinsiId) {
+      Alert.alert("Data Kurang", "Mohon pilih Wilayah (Provinsi/Kota) dan upload minimal 1 Foto.");
+      return;
+    }
+  
     setLoading(true);
     try {
       const formData = new FormData();
-      // OTOMATIS DARI DATABASE
+      
+      // Data User
       formData.append('nama', userData.username); 
-      formData.append('telepon', userData.no_hp || ''); 
+      formData.append('telepon', userData.no_hp); // Sekarang dijamin tidak kosong
       formData.append("pengguna_id", String(userData.id));
-
+  
+      // Data Form
       formData.append('nama_kucing', form.nama_kucing);
       formData.append('waktu', form.waktu);
-      formData.append('lokasi', form.lokasi_detail);
+      formData.append('lokasi', form.lokasi_detail); // Ini yang dicari backend sebagai 'lokasi'
       formData.append('deskripsi', form.deskripsi);
       formData.append('ras', form.ras); 
+  
+      // Data Wilayah
       formData.append('provinsi_id', String(region.provinsiId));
       formData.append('kabupaten_kota_id', String(region.kotaId));
       formData.append('kecamatan_id', String(region.kecamatanId));
-
+  
       selectedTags.forEach(tag => formData.append('tags', tag));
-
+  
       images.forEach((uri) => {
         const filename = uri.split('/').pop() || 'photo.jpg';
         const match = /\.(\w+)$/.exec(filename);
         const type = match ? `image/${match[1]}` : `image/jpeg`;
-        formData.append('foto', { uri, name: filename, type } as any);
+        // @ts-ignore
+        formData.append('foto', { uri, name: filename, type });
       });
-
+  
       const response = await kucingAPI.create(formData);
       
       if (response.data.success) {
@@ -188,8 +214,9 @@ const SearchReportScreen = () => {
         ]);
       }
     } catch (error: any) {
-      console.error(error);
-      Alert.alert("Gagal Mengirim", error.response?.data?.message || "Cek koneksi server kamu.");
+      console.error("Error Submit:", error);
+      const pesanError = error.response?.data?.error || "Cek koneksi server kamu.";
+      Alert.alert("Gagal Mengirim", pesanError);
     } finally {
       setLoading(false);
     }
