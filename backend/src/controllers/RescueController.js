@@ -31,7 +31,8 @@ async searchRescue(request, reply) {
         
         const laporan = await this.rescueModel.searchRescue({ 
             status: status,
-            ids: idsArray
+            ids: idsArray,
+            pengguna_id: pengguna_id
         });
         
         return reply.send({

@@ -20,16 +20,15 @@ import { getUserData } from '../services/api';
 const SearchReportScreen = () => {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [user, setUser] = useState<any>(null); // Simpan data user untuk Info Box
   
-  // State Form
+  // 1. MODIFIKASI: State Form (Hapus 'nama' dan 'telepon')
   const [form, setForm] = useState({
-    nama: '',
     nama_kucing: '',
-    telepon: '',
     waktu: '',
     lokasi_detail: '',
     deskripsi: '',
-    ras: '', // Tambahkan ini untuk Jenis Kucing
+    ras: '', 
   });
 
   const [region, setRegion] = useState({
@@ -44,8 +43,19 @@ const SearchReportScreen = () => {
   const [images, setImages] = useState<string[]>([]);
   const [jenisKucingList, setJenisKucingList] = useState<any[]>([]);
 
-  // 1. AMBIL TAG DAN GROUPING BERDASARKAN KATEGORI
   useEffect(() => {
+    // Check Auth & Get User Data
+    const initPage = async () => {
+      const userData = await getUserData();
+      if (!userData) {
+        Alert.alert("Wajib Login", "Silakan login untuk mengakses fitur ini.");
+        router.replace('/login');
+      } else {
+        setUser(userData);
+      }
+    };
+    initPage();
+
     const fetchJenis = async () => {
       try {
         const res = await kucingAPI.getJenis();
@@ -58,7 +68,7 @@ const SearchReportScreen = () => {
 
     const fetchTags = async () => {
       try {
-        const response = await dataAPI.getAllTags(); //
+        const response = await dataAPI.getAllTags();
         if (response.data?.data) {
           const grouped = response.data.data.reduce((acc: any, tag: any) => {
             if (!acc[tag.kategori]) acc[tag.kategori] = [];
@@ -74,15 +84,7 @@ const SearchReportScreen = () => {
     fetchTags();
   }, []);
 
-  const checkAuth = async () => {
-    const userData = await getUserData();
-    if (!userData) {
-      Alert.alert("Wajib Login", "Silakan login untuk mengakses fitur ini.");
-      router.replace('/login');
-    }
-  };
-  checkAuth();
-
+  // ... (Logika DateTimePicker & ImagePicker tetap sama)
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [dateText, setDateText] = useState("");
   const [timeText, setTimeText] = useState("");
@@ -135,7 +137,7 @@ const SearchReportScreen = () => {
     );
   };
 
-  // 2. SUBMIT LAPORAN
+  // 2. MODIFIKASI: Submit Laporan (Ambil data user otomatis)
   const handleSubmit = async () => {
     const userData = await getUserData(); 
 
@@ -144,27 +146,30 @@ const SearchReportScreen = () => {
       router.replace('/login');
       return;
     }
-    if (!form.nama || !form.telepon || images.length === 0 || !region.provinsiId) {
-      Alert.alert("Data Belum Lengkap", "Mohon isi Nama, No. Telp, Lokasi, dan minimal 1 Foto.");
+
+    // Validasi Foto & Lokasi (Nama & Telp tidak divalidasi karena otomatis)
+    if (images.length === 0 || !region.provinsiId) {
+      Alert.alert("Data Belum Lengkap", "Mohon isi Lokasi dan minimal 1 Foto.");
       return;
     }
 
     setLoading(true);
     try {
       const formData = new FormData();
-      formData.append('nama', form.nama);
+      // OTOMATIS DARI DATABASE
+      formData.append('nama', userData.username); 
+      formData.append('telepon', userData.no_hp || ''); 
       formData.append("pengguna_id", String(userData.id));
+
       formData.append('nama_kucing', form.nama_kucing);
-      formData.append('telepon', form.telepon);
       formData.append('waktu', form.waktu);
       formData.append('lokasi', form.lokasi_detail);
       formData.append('deskripsi', form.deskripsi);
-      formData.append('ras', form.ras); // Pastikan ini dikirim ke backend
+      formData.append('ras', form.ras); 
       formData.append('provinsi_id', String(region.provinsiId));
       formData.append('kabupaten_kota_id', String(region.kotaId));
       formData.append('kecamatan_id', String(region.kecamatanId));
 
-      // Kirim Tag sebagai multiple entries
       selectedTags.forEach(tag => formData.append('tags', tag));
 
       images.forEach((uri) => {
@@ -174,7 +179,7 @@ const SearchReportScreen = () => {
         formData.append('foto', { uri, name: filename, type } as any);
       });
 
-      const response = await kucingAPI.create(formData); //
+      const response = await kucingAPI.create(formData);
       
       if (response.data.success) {
         Alert.alert("Laporan Terkirim!", "Semoga anabul segera ditemukan.", [
@@ -201,11 +206,14 @@ const SearchReportScreen = () => {
         </View>
 
         <View style={styles.formSection}>
-          <Input label="Nama Pelapor" placeholder="Nama lengkap kamu" value={form.nama} onChangeText={(v) => setForm({...form, nama: v})} />
+          {/* 3. INFO BOX: Menampilkan akun pelapor */}
+          <View style={styles.infoBox}>
+            <Ionicons name="information-circle-outline" size={18} color={Colors.primary} />
+            <Text style={styles.infoText}>Melapor sebagai: <Text style={{fontWeight:'bold'}}>{user?.username || '...'}</Text></Text>
+          </View>
+
           <Input label="Nama Kucing" placeholder="Misal: Si Oyen" value={form.nama_kucing} onChangeText={(v) => setForm({...form, nama_kucing: v})} />
-          <Input label="No. Telepon" placeholder="08xxxxxxxxxx" keyboardType="phone-pad" value={form.telepon} onChangeText={(v) => setForm({...form, telepon: v})} />
           
-          {/* INPUT JENIS KUCING (RAS) */}
           <Text style={styles.label}>Jenis / Ras Kucing</Text>
           <View style={styles.pickerContainer}>
             <Picker
@@ -271,7 +279,6 @@ const SearchReportScreen = () => {
             onChangeText={(v) => setForm({...form, deskripsi: v})} 
           />
 
-          {/* MENAMPILKAN TAG BERDASARKAN KATEGORI (MODULAR) */}
           <Text style={styles.labelSection}>Pilih Tag Deskripsi:</Text>
           {Object.entries(groupedTags).map(([kategori, tags]) => (
             <View key={kategori} style={styles.tagCategoryWrapper}>
@@ -303,6 +310,7 @@ const SearchReportScreen = () => {
 };
 
 const styles = StyleSheet.create({
+  // ... (Gaya lama tetap ada)
   container: { padding: 25, paddingBottom: 60 },
   header: { marginBottom: 30 },
   badge: { backgroundColor: '#FEF0E6', paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20, alignSelf: 'flex-start', marginBottom: 10 },
@@ -310,10 +318,23 @@ const styles = StyleSheet.create({
   title: { fontSize: 26, fontWeight: '800', color: '#313957', marginBottom: 8 },
   subtitle: { fontSize: 14, color: '#667085', lineHeight: 20 },
   formSection: { gap: 18 },
+  
+  // Gaya Info Box Baru
+  infoBox: { 
+    flexDirection: 'row', 
+    alignItems: 'center', 
+    backgroundColor: '#F0F7FF', 
+    padding: 12, 
+    borderRadius: 12, 
+    borderWidth: 1, 
+    borderColor: '#D0E7FF',
+    gap: 10,
+    marginBottom: 5 
+  },
+  infoText: { fontSize: 13, color: '#0056B3' },
+
   label: { fontSize: 14, fontWeight: '700', color: '#313957', marginBottom: -5 },
   labelSection: { fontSize: 16, fontWeight: '800', color: '#313957', marginTop: 10 },
-  
-  // Tag Categories
   tagCategoryWrapper: { marginTop: 10 },
   tagCategoryTitle: { fontSize: 12, color: '#999', fontWeight: 'bold', textTransform: 'uppercase', marginBottom: 5 },
   tagRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
@@ -321,7 +342,6 @@ const styles = StyleSheet.create({
   tagSelected: { backgroundColor: Colors.primary, borderColor: Colors.primary },
   tagText: { fontSize: 12, color: '#666' },
   tagTextSelected: { color: '#fff', fontWeight: 'bold' },
-
   inputTrigger: { 
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
     backgroundColor: '#F8F9FA', borderRadius: 12, padding: 15, borderWidth: 1, borderColor: '#ddd',
@@ -343,7 +363,6 @@ const styles = StyleSheet.create({
     borderStyle: 'dashed', borderWidth: 2, borderColor: '#ddd', justifyContent: 'center', alignItems: 'center'
   },
   pickerText: { fontSize: 10, color: Colors.primary, fontWeight: 'bold' },
-  
   buttonGroup: { flexDirection: 'row', gap: 15, marginTop: 30 },
   btnSubmit: { flex: 1.5, marginTop: 0 },
   btnCancel: { flex: 1, backgroundColor: '#EEEEEE', marginTop: 0 }

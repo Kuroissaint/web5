@@ -24,8 +24,6 @@ const FormRescue = () => {
   const [waktuDisplay, setWaktuDisplay] = useState('');
 
   const [form, setForm] = useState({
-    nama: '',
-    telepon: '',
     waktu: new Date().toISOString(),
     lokasi: '',
     tag_id: '',
@@ -77,15 +75,15 @@ const FormRescue = () => {
         router.replace('/login');
         return;
     }
-    if (!form.nama || !form.telepon || !form.tag_id || !form.lokasi) {
-      Alert.alert("Peringatan", "Mohon isi semua data wajib!");
-      return;
-    }
+    if (!form.tag_id || !form.lokasi) {
+        Alert.alert("Peringatan", "Mohon isi lokasi dan kategori kejadian!");
+        return;
+      }
 
     try {
       const formData = new FormData();
-      formData.append('nama_pelapor', form.nama);
-      formData.append('telepon', form.telepon);
+      formData.append('nama_pelapor', userData.username); // Menggunakan username
+      formData.append('telepon', userData.no_hp || '');
       formData.append('lokasi_penemuan', form.lokasi);
       formData.append('deskripsi', form.deskripsi);
       formData.append('tag_id', form.tag_id);
@@ -135,12 +133,6 @@ const FormRescue = () => {
             </View>
           )}
         </TouchableOpacity>
-
-        <Text style={styles.label}>Nama Pelapor</Text>
-        <TextInput style={styles.input} value={form.nama} onChangeText={(v) => setForm({ ...form, nama: v })} />
-
-        <Text style={styles.label}>Nomor WhatsApp</Text>
-        <TextInput style={styles.input} keyboardType="phone-pad" value={form.telepon} onChangeText={(v) => setForm({ ...form, telepon: v })} />
 
         <Text style={styles.label}>Waktu Penemuan</Text>
         <TouchableOpacity style={styles.input} onPress={() => setShowPicker(true)}>

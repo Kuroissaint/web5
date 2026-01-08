@@ -17,6 +17,18 @@ class DonasiController {
         }
     }
 
+    async getShelterDetail(request, reply) {
+      try {
+          const { id } = request.params;
+          // Panggil model yang sudah kita buat/diskusikan tadi
+          const data = await this.donasiModel.getShelterDetail(id); 
+          if (!data) return reply.status(404).send({ success: false, message: "Shelter tidak ditemukan" });
+          return reply.send({ success: true, data });
+      } catch (error) {
+          return reply.status(500).send({ success: false, message: error.message });
+      }
+  }
+  
     // Submit Donasi & Upload Bukti
     async submitDonasi(request, reply) {
         try {

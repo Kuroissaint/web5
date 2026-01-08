@@ -6,6 +6,8 @@ async function donasiRoutes(fastify, options) {
     // Ambil list shelter
     fastify.get('/donasi/shelters', (request, reply) => donasiController.listShelters(request, reply));
     
+    fastify.get('/donasi/shelter/:id', (request, reply) => donasiController.getShelterDetail(request, reply));
+    
     // Kirim bukti donasi
     fastify.post('/donasi/submit', (request, reply) => donasiController.submitDonasi(request, reply));
     

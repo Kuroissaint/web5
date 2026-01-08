@@ -18,8 +18,6 @@ const initialState = {
   sudahSteril: "0",
   deskripsi: "",
   fotos: [] as any[],
-  namaPemilik: "",
-  nohp: "",
   alamat: "",
   provinsiId: null as number | null,
   kabupatenKotaId: null as number | null,
@@ -77,8 +75,9 @@ const FormAjuan = () => {
   };
 
   const nextStep = () => {
-    if (!form.namaPemilik || !form.nohp || !form.provinsiId) {
-      return Alert.alert("Peringatan", "Mohon isi Nama, No HP, dan Lokasi.");
+    // Validasi disederhanakan (Hanya Lokasi)
+    if (!form.provinsiId || !form.alamat) {
+      return Alert.alert("Peringatan", "Mohon lengkapi data lokasi/alamat.");
     }
     setCurrentStep(1);
   };
@@ -96,8 +95,8 @@ const FormAjuan = () => {
     setIsSubmitting(true);
     const formData = new FormData();
     formData.append("pengguna_id", String(userData.id));
-    formData.append("nama_lengkap", form.namaPemilik);
-    formData.append("telepon", form.nohp);
+    formData.append("nama_lengkap", userData.username); 
+    formData.append("telepon", userData.no_hp || '');
     formData.append("alamat_lengkap", form.alamat);
     formData.append("provinsi_id", String(form.provinsiId));
     formData.append("kabupaten_kota_id", String(form.kabupatenKotaId));
@@ -151,12 +150,6 @@ const FormAjuan = () => {
               <Text style={styles.subJudul}>Data Pemilik</Text>
             </View>
             
-            <Text style={styles.label}>Nama Lengkap</Text>
-            <TextInput style={styles.input} onChangeText={(v)=>setForm({...form, namaPemilik:v})} value={form.namaPemilik}/>
-
-            <Text style={styles.label}>WhatsApp / No HP</Text>
-            <TextInput style={styles.input} keyboardType="phone-pad" onChangeText={(v)=>setForm({...form, nohp:v})} value={form.nohp}/>
-
             {/* INTEGRASI REGION SELECT */}
             <Text style={styles.label}>Wilayah</Text>
             <RegionSelect onRegionChange={handleRegionChange} />

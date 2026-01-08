@@ -27,10 +27,7 @@ const FormAdopsi = () => {
   const cat = typeof params.cat === 'string' ? JSON.parse(params.cat) : params.cat;
 
   const [form, setForm] = useState({
-    namaLengkap: '',
-    email: '',
     umur: '',
-    nohp: '',
     pekerjaan: '',
     alamat: '',
     pernahPelihara: '',
@@ -72,10 +69,11 @@ const FormAdopsi = () => {
             // 3. Gunakan ID asli dari storage (pastikan key-nya sesuai backend: penggunaId atau pengguna_id)
             penggunaId: userData.id, 
             kucingId: cat?.id || 0,
-            namaLengkap: form.namaLengkap,
+            namaLengkap: userData.username, 
+            nohp: userData.no_hp || '',
+            email: userData.email || '',
             umur: parseInt(form.umur) || 0,
             alamat: form.alamat,
-            nohp: form.nohp,
             pekerjaan: form.pekerjaan,
             pernahPelihara: form.pernahPelihara === 'Ya' ? 1 : 0,
             alasan: form.alasan,
@@ -109,9 +107,6 @@ const FormAdopsi = () => {
           </View>
 
           <View style={styles.card}>
-            <Text style={styles.label}>Nama Lengkap *</Text>
-            <TextInput style={styles.input} value={form.namaLengkap} onChangeText={(v)=>setForm({...form, namaLengkap:v})}/>
-
             <View style={styles.row}>
               <View style={{ flex: 1, marginRight: 10 }}>
                 <Text style={styles.label}>Umur</Text>
@@ -122,9 +117,6 @@ const FormAdopsi = () => {
                 <TextInput style={styles.input} value={form.pekerjaan} onChangeText={(v)=>setForm({...form, pekerjaan:v})}/>
               </View>
             </View>
-
-            <Text style={styles.label}>No HP / WhatsApp *</Text>
-            <TextInput style={styles.input} keyboardType="phone-pad" value={form.nohp} onChangeText={(v)=>setForm({...form, nohp:v})}/>
 
             {/* INTEGRASI REGION SELECT */}
             <Text style={styles.label}>Lokasi Tinggal</Text>

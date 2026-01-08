@@ -14,6 +14,8 @@ import {
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
+import api from '../services/api';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // Pastikan IP ini sesuai dengan IP server laptop kamu
 const BASE_URL = 'http://192.168.64.217:3000';
@@ -27,16 +29,19 @@ const MyReportPage = () => {
 
   const fetchMyReports = async () => {
     try {
-      // Menggunakan filter pengguna_id sesuai struktur database kamu
-      const userId = "1"; 
-      const res = await axios.get(`${API_URL}/rescue?pengguna_id=${userId}`);
-      const data = res.data?.data || res.data || [];
-      setMyReports(Array.isArray(data) ? [...data].reverse() : []);
-    } catch (error) {
-      console.error("Gagal ambil laporan saya:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
+      const userString = await AsyncStorage.getItem('user');
+      if (userString) {
+        const user = JSON.parse(userString);
+        
+        // Kirim pengguna_id sebagai query parameter
+        const res = await api.get(`/rescue?pengguna_id=${user.id}`); 
+        
+        if (res.data.success) {
+          setMyReports(res.data.data);
+        }
+      }
+    } catch (err) {
+      console.error("Gagal ambil laporan saya:", err);
     }
   };
 
